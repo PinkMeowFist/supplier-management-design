@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% block title %}{{ product.name }} · 产品详情{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="/products">← 返回列表</a>
+        <h1 style="margin-top:4px;">{{ product.name }}</h1>
+    </div>
+    <div>
+        <a href="/products/{{ product.erp_sku }}/edit" class="btn btn-primary">编辑</a>
+        <form action="/products/{{ product.erp_sku }}/delete" method="post" style="display:inline" onsubmit="return confirm('确定删除 {{ product.name }} 吗？所有报价和图片将一并删除。');">
+            <button class="btn btn-danger">删除</button>
+        </form>
+    </div>
+</div>
+
+<!-- 基本信息 -->
+<div class="card">
+    <h2>基本信息</h2>
+    <div class="detail-grid">
+        <div class="detail-item"><div class="label">ERP-SKU</div><div class="value">{{ product.erp_sku or '（未录入）' }}</div></div>
+        <div class="detail-item"><div class="label">产品名称</div><div class="value">{{ product.name }}</div></div>
+        <div class="detail-item"><div class="label">供应商</div><div class="value"><a href="/suppliers/{{ product.supplier_id }}">{{ product.supplier_name }}</a></div></div>
+        <div class="detail-item"><div class="label">分类</div><div class="value">{{ product.cat_name or '-' }}</div></div>
+        <div class="detail-item">
+            <div class="label">1688链接</div>
+            <div class="value">
+                {% if product.product_url %}
+                    <a href="{{ product.product_url }}" target="_blank">打开商品页 ↗</a>
+                {% else %}-{% endif %}
+            </div>
+        </div>
+        <div class="detail-item"><div class="label">是否新品</div><div class="value">{% if product.is_new %}<span class="badge badge-new">🆕 新品 ({{ product.new_product_date or '' }})</span>{% else %}否{% endif %}</div></div>
+        <div class="detail-item"><div class="label">备注</div><div class="value">{{ product.notes or '-' }}</div></div>
+    </div>
+</div>
+
+<!-- 包装数据 -->
+<div class="card">
+    <h2>包装数据</h2>
+    <div class="detail-grid">
+        <div class="detail-item"><div class="label">单套包装方式</div><div class="value">{{ product.package_type or '-' }}</div></div>
+        <div class="detail-item"><div class="label">单套包装尺寸</div><div class="value">{{ product.package_size or '-' }}</div></div>
+        <div class="detail-item"><div class="label">单套重量</div><div class="value">{{ product.package_weight or '-' }}</div></div>
+        <div class="detail-item"><div class="label">外箱尺寸</div><div class="value">{{ product.carton_size or '-' }}</div></div>
+        <div class="detail-item"><div class="label">每箱套数</div><div class="value">{{ product.carton_quantity or '-' }}</div></div>
+        <div class="detail-item"><div class="label">外箱重量</div><div class="value">{{ product.carton_weight or '-' }}</div></div>
+    </div>
+</div>
+
+<!-- 产品图片 -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">📷 产品图片（{{ images|length }} 张）</h2>
+        <div>
+            <form action="/products/{{ product.erp_sku }}/upload-image" method="post" enctype="multipart/form-data" style="display:inline;">
+                <input type="file" name="images" multiple accept="image/*" style="font-size:.85rem;">
+                <button type="submit" class="btn btn-sm btn-primary">上传图片</button>
+            </form>
+        </div>
+    </div>
+    {% if images %}
+    <div class="image-gallery">
+        {% for img in images %}
+        <div class="image-card">
+            <img src="/uploads/{{ img.filename }}" alt="产品图片">
+            <div class="img-name">{{ img.filename }}</div>
+            <div class="img-actions">
+                <span style="font-size:.7rem;color:#94a3b8;">#{{ img.sort_order }}</span>
+                <form action="/products/{{ product.erp_sku }}/delete-image/{{ img.id }}" method="post" style="display:inline;" onsubmit="return confirm('删除这张图片？');">
+                    <button class="btn btn-sm btn-link" style="color:#ef4444;">🗑</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:#94a3b8;">暂无图片</p>
+    {% endif %}
+</div>
+
+<!-- 报价历史 -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">💰 报价历史（{{ price_history|length }} 条）</h2>
+        <a href="/products/{{ product.erp_sku }}/add-price" class="btn btn-sm btn-primary">+ 新增报价</a>
+    </div>
+    {% if price_history %}
+    <table>
+        <thead><tr><th>报价日期</th><th>价格</th><th>来源</th><th>备注</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for ph in price_history %}
+            <tr>
+                <td>{{ ph.price_date }}</td>
+                <td><strong>¥{{ "%.2f"|format(ph.price) }}</strong></td>
+                <td>{{ ph.source or '-' }}</td>
+                <td>{{ ph.notes or '-' }}</td>
+                <td>
+                    <form action="/products/{{ product.erp_sku }}/delete-price/{{ ph.id }}" method="post" style="display:inline;" onsubmit="return confirm('删除这条报价记录？');">
+                        <button class="btn btn-sm btn-danger">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 简易折线图：用CSS bar模拟趋势 -->
+    {% if price_history|length >= 2 %}
+    <div style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px;">
+        <div style="font-size:.85rem;color:#64748b;margin-bottom:8px;">📈 报价趋势</div>
+        <div style="display:flex;align-items:flex-end;gap:6px;height:80px;">
+            {% set prices = price_history|reverse|list %}
+            {% set max_price = prices|map(attribute='price')|max %}
+            {% for ph in prices %}
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <span style="font-size:.7rem;font-weight:600;">¥{{ "%.0f"|format(ph.price) }}</span>
+                    <div style="width:100%;background:#6366f1;border-radius:4px 4px 0 0;
+                        height:{{ (ph.price / max_price * 60)|int if max_price > 0 else 0 }}px;
+                        min-height:4px;" title="{{ ph.price_date }}: ¥{{ '%.2f'|format(ph.price) }}"></div>
+                    <span style="font-size:.65rem;color:#94a3b8;transform:rotate(-30deg);white-space:nowrap;">{{ ph.price_date }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p style="color:#94a3b8;">暂无报价记录</p>
+    {% endif %}
+</div>
+
+<!-- 相关跟进 -->
+{% if product_follow_ups %}
+<div class="card">
+    <h2>📝 相关跟进记录</h2>
+    <table>
+        <thead><tr><th>日期</th><th>类型</th><th>内容</th><th>状态</th><th>下次跟进</th></tr></thead>
+        <tbody>
+            {% for f in product_follow_ups %}
+            <tr>
+                <td>{{ f.follow_date }}</td>
+                <td>{{ f.follow_type }}</td>
+                <td>{{ f.content }}</td>
+                <td>{% if f.is_replied %}<span class="badge badge-down">已回复</span>{% else %}<span class="badge badge-pending">待回复</span>{% endif %}</td>
+                <td>{{ f.next_follow_date or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

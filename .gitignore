@@ -1,0 +1,16 @@
+# 技能文件（非项目代码）
+.reasonix/
+
+# 数据库文件（用户数据）
+workspace/supplier.db
+
+# 上传图片（用户数据）
+workspace/uploads/
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/

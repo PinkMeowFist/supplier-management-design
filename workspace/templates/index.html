@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}仪表盘 · 供应商管理系统{% endblock %}
+{% block content %}
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-num">{{ supplier_count }}</div>
+        <div class="stat-label">供应商总数</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-num">{{ new_count }}</div>
+        <div class="stat-label">本月新品</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-num">{{ pending_count }}</div>
+        <div class="stat-label">待跟进</div>
+    </div>
+</div>
+
+<div class="page-header">
+    <h1>🏠 仪表盘</h1>
+</div>
+
+<div class="quick-links">
+    <a href="/suppliers/new" class="btn btn-primary">+ 新增供应商</a>
+    <a href="/products/new" class="btn btn-success">+ 新增产品</a>
+    <a href="/new-products" class="btn btn-secondary">🆕 新品动态</a>
+    <a href="/products" class="btn btn-secondary">📋 产品列表</a>
+</div>
+
+{% if recent_changes %}
+<div class="card" style="margin-top:20px;">
+    <h2>📊 最近报价变动</h2>
+    <table>
+        <thead>
+            <tr><th>产品</th><th>供应商</th><th>上次报价</th><th>最新报价</th><th>变动</th><th>日期</th></tr>
+        </thead>
+        <tbody>
+            {% for rp in recent_changes %}
+            <tr>
+                <td><a href="/products/{{ rp.erp_sku }}">{{ rp.product_name }}</a></td>
+                <td>{{ rp.supplier_name }}</td>
+                <td>¥{{ "%.2f"|format(rp.prev_price) }}</td>
+                <td>¥{{ "%.2f"|format(rp.latest_price) }}</td>
+                <td>
+                    {% set diff = rp.latest_price - rp.prev_price %}
+                    {% if diff > 0 %}
+                        <span class="badge badge-up">▲ +{{ "%.2f"|format(diff) }}</span>
+                    {% elif diff < 0 %}
+                        <span class="badge badge-down">▼ {{ "%.2f"|format(diff) }}</span>
+                    {% else %}
+                        <span>—</span>
+                    {% endif %}
+                </td>
+                <td>{{ rp.latest_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}新增报价 · {{ product.name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>新增报价 — {{ product.name }}</h1>
+    <a href="/products/{{ product.erp_sku }}" class="btn btn-secondary">← 返回产品详情</a>
+</div>
+
+<div class="card">
+    <div class="form-section">
+        <div style="margin-bottom:12px;font-size:.85rem;color:#64748b;">
+            当前最新报价: <strong>¥{{ "%.2f"|format(latest_price) if latest_price else '—' }}</strong>
+        </div>
+    </div>
+    <form method="post">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="required">报价（元）</label>
+                <input type="number" step="0.01" name="price" required placeholder="如 25.80">
+            </div>
+            <div class="form-group">
+                <label class="required">报价日期</label>
+                <input type="date" name="price_date" value="{{ today }}" required>
+            </div>
+            <div class="form-group">
+                <label>来源</label>
+                <input type="text" name="source" placeholder="报价单号 / 渠道">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>备注</label>
+            <textarea name="notes" rows="2" placeholder="如：满1000可议价"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">保存报价</button>
+        <a href="/products/{{ product.erp_sku }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+{% endblock %}

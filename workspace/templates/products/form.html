@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% block title %}{{ '编辑' if product else '新增' }}产品{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>{{ '编辑产品: ' + product.name if product else '新增产品' }}</h1>
+    <a href="{{ '/products/' + product.erp_sku if product else '/products' }}" class="btn btn-secondary">← 返回</a>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+
+        <!-- 基本信息 -->
+        <div class="form-section">
+            <h3>基本信息</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ERP-SKU</label>
+                    <input type="text" name="erp_sku" value="{{ product.erp_sku if product else '' }}"
+                           placeholder="公司ERP内的SKU编号（可选）">
+                </div>
+                <div class="form-group">
+                    <label class="required">产品名称</label>
+                    <input type="text" name="name" value="{{ product.name if product else '' }}" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">供应商</label>
+                    <select name="supplier_id" required>
+                        <option value="">请选择</option>
+                        {% for s in suppliers %}
+                            <option value="{{ s.id }}" {% if product and product.supplier_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>分类（二级）</label>
+                    <select name="category_id">
+                        <option value="">请选择</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if product and product.category_id==cat.id %}selected{% endif %}>
+                                {{ cat.level1 }} → {{ cat.level2 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>1688商品链接</label>
+                <input type="url" name="product_url" value="{{ product.product_url if product else '' }}" placeholder="https://detail.1688.com/...">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>是否新品</label>
+                    <select name="is_new">
+                        <option value="1" {% if product and product.is_new %}selected{% endif %}>🆕 是</option>
+                        <option value="0" {% if product and not product.is_new %}selected{% endif %}>否</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>新品上架日期</label>
+                    <input type="date" name="new_product_date" value="{{ product.new_product_date if product and product.new_product_date else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- 包装数据 -->
+        <div class="form-section">
+            <h3>包装数据</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>单套包装方式</label>
+                    <input type="text" name="package_type" value="{{ product.package_type if product else '' }}" placeholder="彩盒 / OPP袋 / 无包装">
+                </div>
+                <div class="form-group">
+                    <label>单套包装尺寸</label>
+                    <input type="text" name="package_size" value="{{ product.package_size if product else '' }}" placeholder="长×宽×高 cm 如 35×25×8">
+                </div>
+                <div class="form-group">
+                    <label>单套重量</label>
+                    <input type="text" name="package_weight" value="{{ product.package_weight if product else '' }}" placeholder="如 580g">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>外箱尺寸</label>
+                    <input type="text" name="carton_size" value="{{ product.carton_size if product else '' }}" placeholder="长×宽×高 cm">
+                </div>
+                <div class="form-group">
+                    <label>每箱套数</label>
+                    <input type="number" name="carton_quantity" value="{{ product.carton_quantity if product else '' }}" placeholder="如 24">
+                </div>
+                <div class="form-group">
+                    <label>外箱重量</label>
+                    <input type="text" name="carton_weight" value="{{ product.carton_weight if product else '' }}" placeholder="如 14.5kg">
+                </div>
+            </div>
+        </div>
+
+        <!-- 报价（新增产品时） -->
+        {% if not product %}
+        <div class="form-section">
+            <h3>首次报价</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">报价（元）</label>
+                    <input type="number" step="0.01" name="price" required placeholder="如 25.80">
+                </div>
+                <div class="form-group">
+                    <label class="required">报价日期</label>
+                    <input type="date" name="price_date" value="{{ today }}" required>
+                </div>
+                <div class="form-group">
+                    <label>报价来源</label>
+                    <input type="text" name="price_source" placeholder="报价单号 / 渠道">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 图片上传 -->
+        <div class="form-section">
+            <h3>产品图片</h3>
+            <div class="form-group">
+                <input type="file" name="images" multiple accept="image/*">
+                <div style="font-size:.8rem;color:#94a3b8;margin-top:4px;">支持一次传多张，格式: jpg, png, webp</div>
+            </div>
+            {% if product and images %}
+            <div class="image-gallery" style="margin-top:8px;">
+                {% for img in images %}
+                <div class="image-card">
+                    <img src="/uploads/{{ img.filename }}" alt="图片">
+                    <div class="img-name">{{ img.filename }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 备注 -->
+        <div class="form-section">
+            <h3>备注</h3>
+            <div class="form-group">
+                <textarea name="notes" rows="3" placeholder="额外说明">{{ product.notes if product else '' }}</textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{{ '/products/' + product.erp_sku if product else '/products' }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+{% endblock %}

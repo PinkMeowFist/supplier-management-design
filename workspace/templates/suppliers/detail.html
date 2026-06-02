@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}{{ supplier.name }} · 供应商详情{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="/suppliers">← 返回列表</a>
+        <h1 style="margin-top:4px;">{{ supplier.name }}</h1>
+    </div>
+    <div>
+        <a href="/suppliers/{{ supplier.id }}/edit" class="btn btn-primary">编辑</a>
+        <form action="/suppliers/{{ supplier.id }}/delete" method="post" style="display:inline" onsubmit="return confirm('确定删除 {{ supplier.name }} 吗？所有关联产品和跟进记录将一并删除。');">
+            <button class="btn btn-danger">删除</button>
+        </form>
+    </div>
+</div>
+
+<!-- 基本信息 -->
+<div class="card">
+    <h2>基本信息</h2>
+    <div class="detail-grid">
+        <div class="detail-item"><div class="label">名称</div><div class="value">{{ supplier.name }}</div></div>
+        <div class="detail-item"><div class="label">简称</div><div class="value">{{ supplier.short_name or '-' }}</div></div>
+        <div class="detail-item"><div class="label">地址</div><div class="value">{{ supplier.address or '-' }}</div></div>
+        <div class="detail-item"><div class="label">联系人</div><div class="value">{{ supplier.contact_person or '-' }}</div></div>
+        <div class="detail-item"><div class="label">联系方式</div><div class="value">{{ supplier.contact_info or '-' }}</div></div>
+        <div class="detail-item">
+            <div class="label">主营分类</div>
+            <div class="value">
+                {% for cat in supplier.categories %}
+                    <span class="tag">{{ cat.level1 }}→{{ cat.level2 }}</span>
+                {% else %}
+                    <span style="color:#94a3b8;">未分类</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="detail-item"><div class="label">备注</div><div class="value">{{ supplier.notes or '-' }}</div></div>
+    </div>
+</div>
+
+<!-- 产品列表 -->
+<div class="card">
+    <h2>产品列表（{{ supplier.products|length }} 个）</h2>
+    <a href="/products/new?supplier_id={{ supplier.id }}" class="btn btn-sm btn-success">+ 为该供应商添加产品</a>
+    {% if supplier.products %}
+    <table style="margin-top:12px;">
+        <thead><tr><th>SKU</th><th>产品名</th><th>分类</th><th>最新报价</th><th>报价日期</th><th>新品</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for p in supplier.products %}
+            <tr>
+                <td>{{ p.erp_sku or '-' }}</td>
+                <td><a href="/products/{{ p.erp_sku or '#' }}">{{ p.name }}</a></td>
+                <td>{{ p.cat_name or '-' }}</td>
+                <td>{{ "¥%.2f"|format(p.latest_price) if p.latest_price else '-' }}</td>
+                <td>{{ p.latest_price_date or '-' }}</td>
+                <td>{% if p.is_new %}<span class="badge badge-new">新品</span>{% else %}-{% endif %}</td>
+                <td><a href="/products/{{ p.erp_sku or '#' }}" class="btn btn-sm btn-secondary">查看</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#94a3b8;padding:20px;">暂无产品</p>
+    {% endif %}
+</div>
+
+<!-- 跟进记录 -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">跟进记录</h2>
+        <a href="/follow-ups/new?supplier_id={{ supplier.id }}" class="btn btn-sm btn-primary">+ 新增跟进</a>
+    </div>
+    {% if follow_ups %}
+    <table>
+        <thead><tr><th>日期</th><th>类型</th><th>关联产品</th><th>内容</th><th>状态</th><th>下次跟进</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for f in follow_ups %}
+            <tr>
+                <td>{{ f.follow_date }}</td>
+                <td><span class="badge badge-replied">{{ f.follow_type }}</span></td>
+                <td>{{ f.product_name or '-' }}</td>
+                <td>{{ f.content }}</td>
+                <td>
+                    {% if f.is_replied %}
+                        <span class="badge badge-down">已回复</span>
+                    {% else %}
+                        <span class="badge badge-pending">待回复</span>
+                    {% endif %}
+                </td>
+                <td>{{ f.next_follow_date or '-' }}</td>
+                <td>
+                    <form action="/follow-ups/{{ f.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('删除这条跟进记录？');">
+                        <button class="btn btn-sm btn-danger">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#94a3b8;padding:20px;">暂无跟进记录</p>
+    {% endif %}
+</div>
+
+{% endblock %}

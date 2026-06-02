@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block title %}产品列表 · 供应商管理系统{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>📦 产品报价列表</h1>
+    <a href="/products/new" class="btn btn-primary">+ 新增产品</a>
+</div>
+
+<form class="filter-bar" method="get">
+    <label>搜索</label>
+    <input type="text" name="q" placeholder="产品名 / SKU / 供应商" value="{{ request.args.get('q','') }}">
+    <label>分类</label>
+    <select name="category_id">
+        <option value="">全部</option>
+        {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if request.args.get('category_id','')==cat.id|string %}selected{% endif %}>
+                {{ cat.level1 }} → {{ cat.level2 }}
+            </option>
+        {% endfor %}
+    </select>
+    <label>供应商</label>
+    <select name="supplier_id">
+        <option value="">全部</option>
+        {% for s in suppliers_list %}
+            <option value="{{ s.id }}" {% if request.args.get('supplier_id','')==s.id|string %}selected{% endif %}>
+                {{ s.name }}
+            </option>
+        {% endfor %}
+    </select>
+    <label>
+        <input type="checkbox" name="new_only" value="1" {% if request.args.get('new_only') %}checked{% endif %}>
+        仅新品
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+    <a href="/products" class="btn btn-secondary btn-sm">清除</a>
+</form>
+
+<table>
+    <thead>
+        <tr><th>SKU</th><th>产品名</th><th>供应商</th><th>分类</th><th>最新报价</th><th>报价日期</th><th>变动</th><th>新品</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+        {% for p in products %}
+        <tr>
+            <td>{{ p.erp_sku or '-' }}</td>
+            <td><a href="/products/{{ p.erp_sku }}">{{ p.name }}</a></td>
+            <td><a href="/suppliers/{{ p.supplier_id }}">{{ p.supplier_name }}</a></td>
+            <td>{{ p.cat_name or '-' }}</td>
+            <td>¥{{ "%.2f"|format(p.latest_price) if p.latest_price else '-' }}</td>
+            <td>{{ p.latest_price_date or '-' }}</td>
+            <td>
+                {% if p.price_change is not none %}
+                    {% if p.price_change > 0 %}
+                        <span class="badge badge-up">▲ +{{ "%.2f"|format(p.price_change) }}</span>
+                    {% elif p.price_change < 0 %}
+                        <span class="badge badge-down">▼ {{ "%.2f"|format(p.price_change) }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>{% if p.is_new %}<span class="badge badge-new">新品</span>{% else %}-{% endif %}</td>
+            <td>
+                <a href="/products/{{ p.erp_sku }}" class="btn btn-sm btn-secondary">详情</a>
+                <a href="/products/{{ p.erp_sku }}/edit" class="btn btn-sm btn-secondary">编辑</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:40px;">暂无产品</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}供应商管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="/" class="nav-brand">📦 供应商管理系统</a>
+            <div class="nav-links">
+                <a href="/suppliers">供应商</a>
+                <a href="/products">产品报价</a>
+                <a href="/new-products">新品动态</a>
+            </div>
+            <form class="nav-search" action="/search" method="get">
+                <input type="text" name="q" placeholder="全局搜索..." value="{{ request.args.get('q', '') }}">
+                <button type="submit">🔍</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="flash flash-{{ category }}">{{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer">
+        <span>供应商管理系统 v1.0 · 数据存储于本地</span>
+    </footer>
+</body>
+</html>

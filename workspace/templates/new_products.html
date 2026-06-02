@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block title %}新品动态 · 供应商管理系统{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>🆕 新品动态台</h1>
+    <div>
+        <a href="?month_only=1" class="btn btn-sm btn-primary">仅本月新品</a>
+        <a href="?" class="btn btn-sm btn-secondary">查看全部</a>
+    </div>
+</div>
+
+{% for block in supplier_blocks %}
+<div class="supplier-block card">
+    <h3>
+        <span>{{ block.supplier.name }}</span>
+        <span style="font-size:.85rem;color:#64748b;font-weight:400;">{{ block.new_products|length }} 个新品</span>
+    </h3>
+    {% if block.new_products %}
+    <table>
+        <thead><tr><th>新品上架</th><th>产品名</th><th>SKU</th><th>最新报价</th><th>跟进状态</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for p in block.new_products %}
+            <tr>
+                <td>{{ p.new_product_date or '-' }}</td>
+                <td>
+                    <span class="badge badge-new">新品</span>
+                    <a href="/products/{{ p.erp_sku }}" style="margin-left:4px;">{{ p.name }}</a>
+                </td>
+                <td>{{ p.erp_sku or '-' }}</td>
+                <td>{{ "¥%.2f"|format(p.latest_price) if p.latest_price else '-' }}</td>
+                <td>
+                    {% if p.follow_status == '已跟进' %}
+                        <span class="badge badge-down">已跟进</span>
+                    {% elif p.follow_status == '待跟进' %}
+                        <span class="badge badge-pending">待跟进</span>
+                    {% else %}
+                        <span style="color:#94a3b8;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/products/{{ p.erp_sku }}" class="btn btn-sm btn-secondary">查看</a>
+                    <a href="/follow-ups/new?supplier_id={{ block.supplier.id }}&sku={{ p.erp_sku }}" class="btn btn-sm btn-primary">跟进</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- 该供应商下次跟进提醒 -->
+    {% if block.upcoming_follow_ups %}
+    <div style="margin-top:12px;padding:8px 12px;background:#fefce8;border-radius:8px;font-size:.85rem;">
+        ⏰ 下次跟进提醒:
+        {% for f in block.upcoming_follow_ups %}
+            <span style="margin-left:8px;">{{ f.product_name or '通用' }} — {{ f.next_follow_date }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 无新品的供应商，显示最近状态 -->
+    {% if not block.new_products and block.latest_follow %}
+    <p style="color:#94a3b8;padding:8px 0;">
+        暂无新品 ·
+        最近跟进: {{ block.latest_follow.follow_date }} ({{ block.latest_follow.follow_type }})
+        {% if block.latest_follow.content %}<br><small>{{ block.latest_follow.content[:80] }}{% if block.latest_follow.content|length > 80 %}...{% endif %}</small>{% endif %}
+    </p>
+    {% endif %}
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:40px;">
+    <p style="color:#94a3b8;">🎉 目前没有新品记录</p>
+    <a href="/products/new" class="btn btn-primary" style="margin-top:12px;">添加第一个新品</a>
+</div>
+{% endfor %}
+
+{% endblock %}

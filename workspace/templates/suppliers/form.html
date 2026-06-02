@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% block title %}{{ '编辑' if supplier else '新增' }}供应商{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>{{ '编辑供应商: ' + supplier.name if supplier else '新增供应商' }}</h1>
+    <a href="{{ '/suppliers/' + supplier.id|string if supplier else '/suppliers' }}" class="btn btn-secondary">← 返回</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-section">
+            <h3>基本信息</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">公司名称</label>
+                    <input type="text" name="name" value="{{ supplier.name if supplier else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label>简称</label>
+                    <input type="text" name="short_name" value="{{ supplier.short_name if supplier else '' }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>地址</label>
+                <input type="text" name="address" value="{{ supplier.address if supplier else '' }}">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>联系人</label>
+                    <input type="text" name="contact_person" value="{{ supplier.contact_person if supplier else '' }}">
+                </div>
+                <div class="form-group">
+                    <label>联系方式</label>
+                    <input type="text" name="contact_info" value="{{ supplier.contact_info if supplier else '' }}" placeholder="电话 / 微信 / 邮箱">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>主营分类（可多选）</h3>
+            {% for level1_item in cat_tree %}
+                <fieldset style="margin-bottom:14px;">
+                    <strong style="font-size:.9rem;color:#1e293b;">{{ level1_item.level1 }}</strong>
+                    <div class="checkbox-group" style="margin-top:4px;">
+                        {% for cat in level1_item.categories %}
+                            <label>
+                                <input type="checkbox" name="category_ids" value="{{ cat.id }}"
+                                    {% if supplier and cat.id in supplier.cat_ids %}checked{% endif %}>
+                                {{ cat.level2 }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+
+        <div class="form-section">
+            <h3>备注</h3>
+            <div class="form-group">
+                <textarea name="notes" rows="3" placeholder="额外说明">{{ supplier.notes if supplier else '' }}</textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{{ '/suppliers/' + supplier.id|string if supplier else '/suppliers' }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+{% endblock %}

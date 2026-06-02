@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}新增跟进 · 供应商管理系统{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>新增跟进记录</h1>
+    <a href="{{ '/suppliers/' + supplier.id|string if supplier else '/suppliers' }}" class="btn btn-secondary">← 返回</a>
+</div>
+
+<div class="card">
+    {% if supplier %}
+    <div style="margin-bottom:12px;font-size:.9rem;">
+        跟进供应商: <strong>{{ supplier.name }}</strong>
+    </div>
+    {% endif %}
+    <form method="post">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="required">供应商</label>
+                <select name="supplier_id" required>
+                    <option value="">请选择</option>
+                    {% for s in suppliers_list %}
+                        <option value="{{ s.id }}" {% if supplier and supplier.id==s.id %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="required">跟进类型</label>
+                <select name="follow_type" required>
+                    <option value="报价咨询">报价咨询</option>
+                    <option value="新品问询">新品问询</option>
+                    <option value="常规维护">常规维护</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>关联产品（SKU）</label>
+                <select name="erp_sku">
+                    <option value="">无（通用沟通）</option>
+                    {% for p in products %}
+                        <option value="{{ p.erp_sku }}">{{ p.name }} ({{ p.erp_sku or '无SKU' }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="required">跟进日期</label>
+                <input type="date" name="follow_date" value="{{ today }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>跟进内容</label>
+            <textarea name="content" rows="3" placeholder="问了什么/对方说了什么"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>是否已回复</label>
+                <select name="is_replied">
+                    <option value="0">待回复</option>
+                    <option value="1">已回复</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>下次跟进日期</label>
+                <input type="date" name="next_follow_date">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{{ '/suppliers/' + supplier.id|string if supplier else '/suppliers' }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+{% endblock %}

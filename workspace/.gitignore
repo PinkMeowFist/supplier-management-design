@@ -1,0 +1,13 @@
+# 数据库文件（用户数据，不提交）
+supplier.db
+
+# 上传图片（用户数据，不提交）
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/

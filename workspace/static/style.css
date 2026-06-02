@@ -1,0 +1,194 @@
+/* ============================================================
+   供应商管理系统 - 样式表
+   ============================================================ */
+
+/* ---- 重置 & 基础 ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a { color: #2563eb; text-decoration: none; }
+a:hover { color: #1d4ed8; text-decoration: underline; }
+
+/* ---- 导航栏 ---- */
+.navbar {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 0 24px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.nav-inner {
+    display: flex; align-items: center; gap: 24px;
+    max-width: 1280px; margin: 0 auto; height: 52px;
+}
+.nav-brand { font-size: 1.1rem; font-weight: 700; color: #f8fafc; }
+.nav-brand:hover { color: #fff; text-decoration: none; }
+.nav-links { display: flex; gap: 16px; }
+.nav-links a { color: #94a3b8; font-size: .9rem; padding: 4px 8px; border-radius: 6px; }
+.nav-links a:hover { color: #e2e8f0; background: #334155; text-decoration: none; }
+.nav-search { display: flex; margin-left: auto; }
+.nav-search input {
+    padding: 6px 12px; border: 1px solid #475569; border-radius: 6px 0 0 6px;
+    background: #334155; color: #e2e8f0; font-size: .85rem; width: 200px; outline: none;
+}
+.nav-search input:focus { border-color: #6366f1; }
+.nav-search button {
+    padding: 6px 14px; background: #475569; color: #e2e8f0;
+    border: 1px solid #475569; border-left: none; border-radius: 0 6px 6px 0;
+    cursor: pointer; font-size: .85rem;
+}
+.nav-search button:hover { background: #6366f1; }
+
+/* ---- 主体容器 ---- */
+.container { max-width: 1280px; margin: 0 auto; padding: 24px; flex: 1; width: 100%; }
+
+/* ---- Flash 消息 ---- */
+.flash { padding: 12px 20px; border-radius: 8px; margin-bottom: 16px; font-size: .9rem; }
+.flash-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.flash-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* ---- 页脚 ---- */
+.footer {
+    text-align: center; padding: 16px; color: #94a3b8; font-size: .8rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* ---- 页面标题区 ---- */
+.page-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;
+}
+.page-header h1 { font-size: 1.4rem; font-weight: 700; }
+
+/* ---- 按钮 ---- */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border: none; border-radius: 8px;
+    font-size: .9rem; font-weight: 500; cursor: pointer;
+    transition: background .15s, transform .1s;
+}
+.btn:active { transform: scale(.97); }
+
+.btn-primary { background: #6366f1; color: #fff; }
+.btn-primary:hover { background: #4f46e5; }
+
+.btn-success { background: #10b981; color: #fff; }
+.btn-success:hover { background: #059669; }
+
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+
+.btn-secondary { background: #e2e8f0; color: #334155; }
+.btn-secondary:hover { background: #cbd5e1; }
+
+.btn-sm { padding: 4px 10px; font-size: .82rem; }
+.btn-link { background: none; color: #2563eb; padding: 2px 6px; }
+.btn-link:hover { text-decoration: underline; }
+
+/* ---- 卡片 ---- */
+.card {
+    background: #fff; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 20px;
+}
+.card h2 { font-size: 1.1rem; margin-bottom: 12px; color: #1e293b; }
+
+/* ---- 仪表盘 ---- */
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+    background: #fff; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center;
+}
+.stat-num { font-size: 2.2rem; font-weight: 800; color: #6366f1; }
+.stat-label { font-size: .85rem; color: #64748b; margin-top: 4px; }
+.quick-links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+
+/* ---- 筛选栏 ---- */
+.filter-bar {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 16px; padding: 14px; background: #fff; border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.filter-bar label { font-size: .85rem; color: #64748b; }
+.filter-bar select, .filter-bar input {
+    padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: .85rem; outline: none;
+}
+.filter-bar select:focus, .filter-bar input:focus { border-color: #6366f1; }
+
+/* ---- 表格 ---- */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+    text-align: left; padding: 10px 12px; font-size: .8rem; font-weight: 600;
+    color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;
+}
+tbody td { padding: 10px 12px; font-size: .9rem; border-bottom: 1px solid #f1f5f9; }
+tbody tr:hover { background: #f8fafc; }
+.badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: .75rem; font-weight: 600;
+}
+.badge-new { background: #dbeafe; color: #1d4ed8; }
+.badge-up { background: #fee2e2; color: #dc2626; }
+.badge-down { background: #d1fae5; color: #059669; }
+.badge-replied { background: #ddd6fe; color: #6d28d9; }
+.badge-pending { background: #fef3c7; color: #b45309; }
+.tag {
+    display: inline-block; margin: 2px 4px; padding: 2px 8px;
+    background: #e0e7ff; color: #3730a3; border-radius: 6px; font-size: .78rem;
+}
+
+/* ---- 表单 ---- */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+    display: block; font-size: .85rem; font-weight: 600; color: #334155; margin-bottom: 4px;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 8px 12px; border: 1px solid #d1d5db;
+    border-radius: 8px; font-size: .9rem; font-family: inherit; outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: #6366f1; box-shadow: 0 0 0 3px #e0e7ff;
+}
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; }
+.form-section { margin-bottom: 24px; }
+.form-section h3 { font-size: 1rem; color: #1e293b; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.checkbox-group label {
+    display: flex; align-items: center; gap: 4px; font-weight: 400; cursor: pointer;
+}
+.checkbox-group input[type="checkbox"] { width: auto; }
+fieldset { border: none; }
+.required::after { content: " *"; color: #ef4444; }
+
+/* ---- 详情卡片 ---- */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; }
+.detail-item { }
+.detail-item .label { font-size: .8rem; color: #64748b; }
+.detail-item .value { font-size: .95rem; color: #1e293b; margin-top: 2px; }
+
+/* ---- 图片区 ---- */
+.image-gallery { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.image-card {
+    width: 140px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
+    position: relative; background: #f8fafc;
+}
+.image-card img { width: 100%; height: 120px; object-fit: cover; display: block; }
+.image-card .img-name { font-size: .7rem; padding: 4px 6px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.image-card .img-actions { display: flex; justify-content: space-between; padding: 2px 4px; }
+
+/* ---- 分隔 ---- */
+.section-divider { margin: 20px 0; border: none; border-top: 1px solid #e2e8f0; }
+
+/* ---- 新品动态台 ---- */
+.supplier-block { margin-bottom: 24px; }
+.supplier-block h3 { font-size: 1.05rem; padding: 8px 0; border-bottom: 2px solid #6366f1; display: flex; justify-content: space-between; }
