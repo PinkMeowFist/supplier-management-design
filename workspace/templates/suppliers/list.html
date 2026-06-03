@@ -7,17 +7,16 @@
     <a href="/suppliers/new" class="btn btn-primary">+ 新增供应商</a>
 </div>
 
-<form class="filter-bar" method="get">
+<form class="filter-bar" method="get" id="filterForm">
     <label>搜索</label>
     <input type="text" name="q" placeholder="名称 / 联系人" value="{{ request.args.get('q','') }}">
-    <label>分类</label>
-    <select name="category_id">
+    <label>一级分类</label>
+    <select name="level1" id="level1Select" onchange="loadLevel2()">
         <option value="">全部</option>
-        {% for cat in categories %}
-            <option value="{{ cat.id }}" {% if request.args.get('category_id','')==cat.id|string %}selected{% endif %}>
-                {{ cat.level1 }} → {{ cat.level2 }}
-            </option>
-        {% endfor %}
+    </select>
+    <label>二级分类</label>
+    <select name="category_id" id="level2Select">
+        <option value="">全部</option>
     </select>
     <button type="submit" class="btn btn-primary btn-sm">筛选</button>
     <a href="/suppliers" class="btn btn-secondary btn-sm">清除</a>
@@ -37,7 +36,7 @@
             <td>{{ s.short_name or '-' }}</td>
             <td>
                 {% for cat in s.categories %}
-                    <span class="tag">{{ cat.level1 }}→{{ cat.level2 }}</span>
+                    <span class="tag">{{ cat.level1 }}→{{ cat.level2 }}{% if cat.level3 %}（{{ cat.level3 }}）{% endif %}</span>
                 {% else %}
                     <span style="color:#94a3b8;">未分类</span>
                 {% endfor %}
@@ -56,5 +55,59 @@
         {% endfor %}
     </tbody>
 </table>
+
+<script>
+// 级联筛选
+async function loadLevel2() {
+    let l1 = document.getElementById('level1Select').value;
+    let l2 = document.getElementById('level2Select');
+    l2.innerHTML = '<option value="">全部</option>';
+    if (!l1) return;
+    try {
+        let resp = await fetch('/api/categories?level1=' + encodeURIComponent(l1));
+        let data = await resp.json();
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.level2;
+            l2.appendChild(opt);
+        });
+    } catch(e) {}
+}
+
+// 初始化一级下拉
+async function initLevel1() {
+    let l1 = document.getElementById('level1Select');
+    try {
+        let resp = await fetch('/api/categories');
+        let data = await resp.json();
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.level1;
+            opt.textContent = cat.level1;
+            l1.appendChild(opt);
+        });
+    } catch(e) {}
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    await initLevel1();
+    // 如果URL中有category_id，回填
+    let selectedCatId = '{{ selected_category }}';
+    if (selectedCatId) {
+        // 需要通过API反向查找
+        try {
+            let resp = await fetch('/api/categories?category_id=' + selectedCatId);
+            let data = await resp.json();
+            if (data && data.level1) {
+                document.getElementById('level1Select').value = data.level1;
+                await loadLevel2();
+                document.getElementById('level2Select').value = selectedCatId;
+            }
+        } catch(e) {}
+    }
+});
+</script>
 
 {% endblock %}

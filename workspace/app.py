@@ -41,6 +41,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             level1 TEXT NOT NULL,
             level2 TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
             UNIQUE(level1, level2)
         );
 
@@ -60,6 +61,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             supplier_id INTEGER NOT NULL,
             category_id INTEGER NOT NULL,
+            level3 TEXT,
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
             UNIQUE(supplier_id, category_id)
@@ -121,36 +123,159 @@ def init_db():
         );
     ''')
 
-    # ---- 预置1688分类数据 ----
+    # ---- 预置36类目1688分类（13个优先类目在前） ----
     default_cats = [
-        ('玩具', '积木'), ('玩具', '模型'), ('玩具', '玩偶'), ('玩具', '拼图'),
-        ('玩具', '遥控玩具'), ('玩具', '益智玩具'), ('玩具', '沙滩玩具'),
-        ('五金', '手动工具'), ('五金', '电动工具'), ('五金', '锁具'), ('五金', '紧固件'),
-        ('五金', '卫浴五金'), ('五金', '门窗五金'),
-        ('家具', '桌椅'), ('家具', '床具'), ('家具', '收纳柜'), ('家具', '户外家具'),
-        ('家具', '办公家具'), ('家具', '儿童家具'),
-        ('小电器', '厨房小电'), ('小电器', '生活电器'), ('小电器', '个护电器'),
-        ('小电器', '数码配件'), ('小电器', '灯具'),
-        ('服饰', '女装'), ('服饰', '男装'), ('服饰', '童装'), ('服饰', '内衣'),
-        ('服饰', '运动服装'), ('服饰', '袜子手套'),
-        ('箱包', '双肩包'), ('箱包', '单肩包'), ('箱包', '拉杆箱'), ('箱包', '钱包卡包'),
-        ('箱包', '化妆包'), ('箱包', '旅行袋'),
-        ('日用百货', '收纳用品'), ('日用百货', '清洁用品'), ('日用百货', '厨房用品'),
-        ('日用百货', '卫浴用品'), ('日用百货', '雨具'),
-        ('家纺', '床品套件'), ('家纺', '被芯'), ('家纺', '枕芯'), ('家纺', '凉席'),
-        ('家纺', '窗饰'),
-        ('礼品工艺品', '摆件'), ('礼品工艺品', '节庆礼品'), ('礼品工艺品', '手工DIY'),
-        ('礼品工艺品', '水晶制品'),
-        ('母婴', '喂养用品'), ('母婴', '洗护用品'), ('母婴', '安全用品'), ('母婴', '出行用品'),
-        ('运动户外', '健身器材'), ('运动户外', '骑行用品'), ('运动户外', '帐篷露营'),
-        ('运动户外', '垂钓用具'),
-        ('汽摩配', '车用内饰'), ('汽摩配', '车用外饰'), ('汽摩配', '车载电子'),
-        ('汽摩配', '维护工具'),
+        # == 优先类目 (sort 1-13) ==
+        ('流行配饰', '发饰', 1), ('流行配饰', '帽子', 1), ('流行配饰', '围巾披肩', 1),
+        ('流行配饰', '手套', 1), ('流行配饰', '腰带', 1), ('流行配饰', '眼镜太阳镜', 1),
+        ('流行配饰', '丝巾', 1), ('流行配饰', '饰品配件', 1),
+
+        ('家具', '桌椅', 2), ('家具', '床具', 2), ('家具', '收纳柜', 2),
+        ('家具', '户外家具', 2), ('家具', '办公家具', 2), ('家具', '儿童家具', 2),
+        ('家具', '沙发', 2), ('家具', '床垫', 2),
+
+        ('礼品工艺品', '摆件', 3), ('礼品工艺品', '节庆礼品', 3), ('礼品工艺品', '手工DIY', 3),
+        ('礼品工艺品', '水晶制品', 3), ('礼品工艺品', '工艺礼品', 3), ('礼品工艺品', '商务礼品', 3),
+        ('礼品工艺品', '促销礼品', 3), ('礼品工艺品', '收藏品', 3),
+
+        ('家居用品', '收纳用品', 4), ('家居用品', '清洁用品', 4), ('家居用品', '厨房用品', 4),
+        ('家居用品', '卫浴用品', 4), ('家居用品', '雨具', 4), ('家居用品', '家纺', 4),
+        ('家居用品', '家居装饰', 4), ('家居用品', '香薰蜡烛', 4),
+
+        ('家电', '厨房小电', 5), ('家电', '生活电器', 5), ('家电', '个护电器', 5),
+        ('家电', '大家电', 5), ('家电', '厨房大家电', 5), ('家电', '热水器', 5),
+        ('家电', '净化除湿', 5), ('家电', '影音电器', 5),
+
+        ('灯具照明', '商业照明', 6), ('灯具照明', 'LED灯具', 6), ('灯具照明', '室内灯具', 6),
+        ('灯具照明', '室外灯具', 6), ('灯具照明', '台灯落地灯', 6), ('灯具照明', '吊灯', 6),
+        ('灯具照明', '筒灯射灯', 6), ('灯具照明', '开关插座', 6),
+
+        ('箱包', '双肩包', 7), ('箱包', '单肩包', 7), ('箱包', '拉杆箱', 7),
+        ('箱包', '钱包卡包', 7), ('箱包', '化妆包', 7), ('箱包', '旅行袋', 7),
+        ('箱包', '手提包', 7), ('箱包', '斜挎包', 7),
+
+        ('办公文教', '书写工具', 8), ('办公文教', '办公纸张', 8), ('办公文教', '文件管理', 8),
+        ('办公文教', '教学用品', 8), ('办公文教', '美术用品', 8), ('办公文教', '办公耗材', 8),
+        ('办公文教', '计算器电子', 8), ('办公文教', '学生文具', 8),
+
+        ('橡胶塑料', '塑料原料', 9), ('橡胶塑料', '橡胶原料', 9), ('橡胶塑料', '塑料制品', 9),
+        ('橡胶塑料', '橡胶制品', 9), ('橡胶塑料', '工业用橡胶', 9), ('橡胶塑料', '塑料包装', 9),
+        ('橡胶塑料', '塑料管材', 9), ('橡胶塑料', '密封件', 9),
+
+        ('运动娱乐', '健身器材', 10), ('运动娱乐', '骑行用品', 10), ('运动娱乐', '帐篷露营', 10),
+        ('运动娱乐', '垂钓用具', 10), ('运动娱乐', '户外照明', 10), ('运动娱乐', '球类运动', 10),
+        ('运动娱乐', '瑜伽舞蹈', 10), ('运动娱乐', '体育用品', 10),
+
+        ('五金工具', '手动工具', 11), ('五金工具', '电动工具', 11), ('五金工具', '锁具', 11),
+        ('五金工具', '紧固件', 11), ('五金工具', '卫浴五金', 11), ('五金工具', '门窗五金', 11),
+        ('五金工具', '测量工具', 11), ('五金工具', '磨具磨料', 11),
+
+        ('玩具', '积木', 12), ('玩具', '模型', 12), ('玩具', '玩偶', 12),
+        ('玩具', '拼图', 12), ('玩具', '遥控玩具', 12), ('玩具', '益智玩具', 12),
+        ('玩具', '沙滩玩具', 12), ('玩具', '电动玩具', 12),
+
+        ('汽车配件', '车用内饰', 13), ('汽车配件', '车用外饰', 13), ('汽车配件', '车载电子', 13),
+        ('汽车配件', '维护工具', 13), ('汽车配件', '汽车保养品', 13), ('汽车配件', '轮胎轮毂', 13),
+        ('汽车配件', '汽车灯具', 13), ('汽车配件', '汽车零部件', 13),
+
+        # == 其余23个类目 (sort 14-36) ==
+        ('农业', '粮食谷物', 14), ('农业', '种子种苗', 14), ('农业', '肥料', 14),
+        ('农业', '农药', 14), ('农业', '农业机械', 14), ('农业', '园艺工具', 14),
+        ('农业', '畜牧养殖', 14), ('农业', '水产', 14),
+
+        ('服装', '女装', 15), ('服装', '男装', 15), ('服装', '童装', 15),
+        ('服装', '内衣', 15), ('服装', '运动服装', 15), ('服装', '袜子手套', 15),
+        ('服装', '大码服装', 15), ('服装', '民族服装', 15),
+
+        ('美容与个人护理', '护肤品', 16), ('美容与个人护理', '彩妆', 16),
+        ('美容与个人护理', '美发护发', 16), ('美容与个人护理', '口腔护理', 16),
+        ('美容与个人护理', '身体护理', 16), ('美容与个人护理', '美容仪器', 16),
+        ('美容与个人护理', '美甲', 16), ('美容与个人护理', '个人洗浴', 16),
+
+        ('商务服务', '物流快递', 17), ('商务服务', '仓储服务', 17), ('商务服务', '翻译服务', 17),
+        ('商务服务', '法律服务', 17), ('商务服务', '会计税务', 17), ('商务服务', '广告营销', 17),
+        ('商务服务', '展会服务', 17), ('商务服务', '软件开发', 17),
+
+        ('化工', '有机化工原料', 18), ('化工', '无机化工原料', 18), ('化工', '涂料油漆', 18),
+        ('化工', '胶粘剂', 18), ('化工', '精细化学品', 18), ('化工', '添加剂', 18),
+        ('化工', '表面处理', 18), ('化工', '化学试剂', 18),
+
+        ('建筑', '装修材料', 19), ('建筑', '水泥砖瓦', 19), ('建筑', '防水材料', 19),
+        ('建筑', '瓷砖地板', 19), ('建筑', '门窗', 19), ('建筑', '楼梯扶手', 19),
+        ('建筑', '管材管件', 19), ('建筑', '建筑设备', 19),
+
+        ('消费电子', '手机配件', 20), ('消费电子', '数码相机', 20), ('消费电子', '耳机音箱', 20),
+        ('消费电子', '智能穿戴', 20), ('消费电子', '电脑配件', 20), ('消费电子', '移动电源', 20),
+        ('消费电子', '数据线充电器', 20), ('消费电子', '存储设备', 20),
+
+        ('电气设备', '变压器', 21), ('电气设备', '电线电缆', 21), ('电气设备', '配电柜', 21),
+        ('电气设备', '开关设备', 21), ('电气设备', '电机', 21), ('电气设备', '发电机', 21),
+        ('电气设备', '稳压器', 21), ('电气设备', '电气控制', 21),
+
+        ('电子元器件', '集成电路', 22), ('电子元器件', '二三极管', 22), ('电子元器件', '电阻电容', 22),
+        ('电子元器件', '传感器', 22), ('电子元器件', '连接器', 22), ('电子元器件', 'PCB板', 22),
+        ('电子元器件', '继电器', 22), ('电子元器件', '晶振振荡器', 22),
+
+        ('能源', '煤炭', 23), ('能源', '石油制品', 23), ('能源', '天然气', 23),
+        ('能源', '太阳能设备', 23), ('能源', '风能设备', 23), ('能源', '生物质能', 23),
+        ('能源', '电池蓄电池', 23), ('能源', '节能设备', 23),
+
+        ('环保', '水处理设备', 24), ('环保', '空气净化', 24), ('环保', '垃圾处理', 24),
+        ('环保', '环保材料', 24), ('环保', '噪声控制', 24), ('环保', '环保检测', 24),
+        ('环保', '再生资源', 24), ('环保', '节能技术', 24),
+
+        ('定制加工', '机械加工', 25), ('定制加工', '注塑加工', 25), ('定制加工', '冲压加工', 25),
+        ('定制加工', '激光切割', 25), ('定制加工', '3D打印', 25), ('定制加工', '模具加工', 25),
+        ('定制加工', '钣金加工', 25), ('定制加工', '表面处理加工', 25),
+
+        ('食品饮料', '休闲零食', 26), ('食品饮料', '饮料冲调', 26), ('食品饮料', '茶叶', 26),
+        ('食品饮料', '粮油调味', 26), ('食品饮料', '酒类', 26), ('食品饮料', '保健食品', 26),
+        ('食品饮料', '生鲜水果', 26), ('食品饮料', '乳制品', 26),
+
+        ('医药保健', '医疗器械', 27), ('医药保健', '保健品', 27), ('医药保健', '中药饮片', 27),
+        ('医药保健', '化学药品', 27), ('医药保健', '生物制品', 27), ('医药保健', '医用耗材', 27),
+        ('医药保健', '康复器材', 27), ('医药保健', '计生用品', 27),
+
+        ('机械', '机床', 28), ('机械', '包装机械', 28), ('机械', '纺织机械', 28),
+        ('机械', '食品机械', 28), ('机械', '农业机械', 28), ('机械', '工程机械', 28),
+        ('机械', '塑料机械', 28), ('机械', '印刷机械', 28),
+
+        ('矿物冶金', '钢铁材料', 29), ('矿物冶金', '有色金属', 29), ('矿物冶金', '钢材加工', 29),
+        ('矿物冶金', '铁合金', 29), ('矿物冶金', '非金属矿物', 29), ('矿物冶金', '耐火材料', 29),
+        ('矿物冶金', '石墨碳素', 29), ('矿物冶金', '铸造锻压', 29),
+
+        ('包装印刷', '纸类包装', 30), ('包装印刷', '塑料包装', 30), ('包装印刷', '金属包装', 30),
+        ('包装印刷', '玻璃包装', 30), ('包装印刷', '印刷服务', 30), ('包装印刷', '包装材料', 30),
+        ('包装印刷', '标签标牌', 30), ('包装印刷', '胶带封箱', 30),
+
+        ('促销品', '广告促销品', 31), ('促销品', '商务礼品', 31), ('促销品', '会议礼品', 31),
+        ('促销品', '小商品', 31), ('促销品', '节庆礼品', 31), ('促销品', '定制礼品', 31),
+        ('促销品', '赠品小礼品', 31), ('促销品', '宣传物料', 31),
+
+        ('安全防护', '劳保用品', 32), ('安全防护', '安全帽', 32), ('安全防护', '防护手套', 32),
+        ('安全防护', '防护服', 32), ('安全防护', '安全鞋', 32), ('安全防护', '消防设备', 32),
+        ('安全防护', '安防监控', 32), ('安全防护', '交通安全', 32),
+
+        ('服务设备', '酒店设备', 33), ('服务设备', '餐饮设备', 33), ('服务设备', '清洁设备', 33),
+        ('服务设备', '制冷设备', 33), ('服务设备', '通风设备', 33), ('服务设备', '厨房设备', 33),
+        ('服务设备', '商业冰柜', 33), ('服务设备', '自动售货机', 33),
+
+        ('鞋类配件', '男鞋', 34), ('鞋类配件', '女鞋', 34), ('鞋类配件', '童鞋', 34),
+        ('鞋类配件', '运动鞋', 34), ('鞋类配件', '拖鞋凉鞋', 34), ('鞋类配件', '鞋材鞋配件', 34),
+        ('鞋类配件', '靴子', 34), ('鞋类配件', '鞋垫', 34),
+
+        ('纺织皮革', '面料', 35), ('纺织皮革', '纱线', 35), ('纺织皮革', '皮革', 35),
+        ('纺织皮革', '家纺面料', 35), ('纺织皮革', '里料', 35), ('纺织皮革', '辅料', 35),
+        ('纺织皮革', '羽绒填充物', 35), ('纺织皮革', '纺织原料', 35),
+
+        ('钟表珠宝', '手表', 36), ('钟表珠宝', '钟表配件', 36), ('钟表珠宝', '黄金铂金', 36),
+        ('钟表珠宝', '银饰', 36), ('钟表珠宝', '钻石', 36), ('钟表珠宝', '翡翠玉器', 36),
+        ('钟表珠宝', '珍珠', 36), ('钟表珠宝', '项链手链', 36),
     ]
     existing = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
     if existing == 0:
         conn.executemany(
-            "INSERT INTO categories (level1, level2) VALUES (?, ?)",
+            "INSERT INTO categories (level1, level2, sort_order) VALUES (?, ?, ?)",
             default_cats
         )
     conn.commit()
@@ -269,7 +394,7 @@ def supplier_list():
     for s in suppliers:
         sdict = dict(s)
         cats = db.execute('''
-            SELECT c.level1, c.level2
+            SELECT c.level1, c.level2, sc.level3
             FROM supplier_categories sc
             JOIN categories c ON sc.category_id = c.id
             WHERE sc.supplier_id = ?
@@ -277,7 +402,7 @@ def supplier_list():
         sdict['categories'] = cats
         supplier_list.append(sdict)
 
-    categories = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    categories = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     db.close()
     return render_template('suppliers/list.html',
                            suppliers=supplier_list,
@@ -297,10 +422,10 @@ def supplier_detail(sid):
 
     # 关联分类
     cats = db.execute('''
-        SELECT c.* FROM categories c
+        SELECT c.*, sc.level3 FROM categories c
         JOIN supplier_categories sc ON c.id = sc.category_id
         WHERE sc.supplier_id = ?
-        ORDER BY c.level1, c.level2
+        ORDER BY c.sort_order, c.level2
     ''', (sid,)).fetchall()
 
     # 关联产品
@@ -368,14 +493,15 @@ def supplier_add():
         sid = cur.lastrowid
 
         for cid in category_ids:
-            db.execute("INSERT INTO supplier_categories (supplier_id, category_id) VALUES (?,?)", (sid, cid))
+            level3 = request.form.get(f'level3_{cid}', '').strip() or None
+            db.execute("INSERT INTO supplier_categories (supplier_id, category_id, level3) VALUES (?,?,?)", (sid, cid, level3))
 
         db.commit()
         flash("供应商添加成功", "success")
         return redirect(url_for('supplier_detail', sid=sid))
 
     # 按一级分类分组
-    all_cats = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    all_cats = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     cat_tree = {}
     for cat in all_cats:
         if cat['level1'] not in cat_tree:
@@ -414,15 +540,16 @@ def supplier_edit(sid):
         # 更新分类关联
         db.execute("DELETE FROM supplier_categories WHERE supplier_id=?", (sid,))
         for cid in request.form.getlist('category_ids'):
-            db.execute("INSERT INTO supplier_categories (supplier_id, category_id) VALUES (?,?)", (sid, cid))
+            level3 = request.form.get(f'level3_{cid}', '').strip() or None
+            db.execute("INSERT INTO supplier_categories (supplier_id, category_id, level3) VALUES (?,?,?)", (sid, cid, level3))
         db.commit()
         flash("供应商更新成功", "success")
         return redirect(url_for('supplier_detail', sid=sid))
 
-    # 已选分类
-    selected = db.execute("SELECT category_id FROM supplier_categories WHERE supplier_id=?", (sid,)).fetchall()
-    selected_cat_ids = [str(r['category_id']) for r in selected]
-    all_cats = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    # 已选分类（含level3）
+    selected = db.execute("SELECT category_id, level3 FROM supplier_categories WHERE supplier_id=?", (sid,)).fetchall()
+    selected_cat_ids = {str(r['category_id']): r['level3'] for r in selected}
+    all_cats = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     cat_tree = {}
     for cat in all_cats:
         if cat['level1'] not in cat_tree:
@@ -431,7 +558,7 @@ def supplier_edit(sid):
     cat_tree_list = [{'level1': k, 'categories': v} for k, v in cat_tree.items()]
     # 将 cat_ids 注入 supplier Row 以便模板访问
     supplier_dict = dict(supplier)
-    supplier_dict['cat_ids'] = [int(x) for x in selected_cat_ids]
+    supplier_dict['cat_ids'] = selected_cat_ids
     db.close()
     return render_template('suppliers/form.html',
                            supplier=supplier_dict,
@@ -506,7 +633,7 @@ def product_list():
         product_list.append(pdict)
 
     suppliers = db.execute("SELECT id, short_name, name FROM suppliers ORDER BY short_name").fetchall()
-    categories = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    categories = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     db.close()
     return render_template('products/list.html',
                            products=product_list,
@@ -645,7 +772,7 @@ def product_add():
         return redirect(url_for('product_detail', sku=erp_sku))
 
     suppliers = db.execute("SELECT id, short_name, name FROM suppliers ORDER BY short_name").fetchall()
-    categories = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    categories = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     db.close()
     return render_template('products/form.html',
                            product=None,
@@ -725,7 +852,7 @@ def product_edit(sku):
         return redirect(url_for('product_detail', sku=sku))
 
     suppliers = db.execute("SELECT id, short_name, name FROM suppliers ORDER BY short_name").fetchall()
-    categories = db.execute("SELECT * FROM categories ORDER BY level1, level2").fetchall()
+    categories = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     db.close()
     return render_template('products/form.html',
                            product=product,
@@ -1014,6 +1141,30 @@ def new_products():
                            supplier_blocks=supplier_blocks,
                            today=today,
                            month_filter=month_filter)
+
+
+# ============================================================
+# 搜索 (JSON API)
+# ============================================================
+
+@app.route('/api/categories')
+def api_categories():
+    """级联筛选API：返回一级类目列表，或指定一级下的二级列表"""
+    level1 = request.args.get('level1', '').strip()
+    db = get_db()
+    if level1:
+        cats = db.execute(
+            "SELECT id, level2 FROM categories WHERE level1=? ORDER BY sort_order, level2",
+            (level1,)
+        ).fetchall()
+        result = [{'id': c['id'], 'level2': c['level2']} for c in cats]
+    else:
+        cats = db.execute(
+            "SELECT DISTINCT level1, MIN(sort_order) as so FROM categories GROUP BY level1 ORDER BY so"
+        ).fetchall()
+        result = [{'level1': c['level1']} for c in cats]
+    db.close()
+    return jsonify(result)
 
 
 # ============================================================

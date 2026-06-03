@@ -37,22 +37,45 @@
             </div>
         </div>
 
-        <div class="form-section">
+        <div class="form-section" id="categorySection">
             <h3>主营分类（可多选）</h3>
+
+            <!-- 已选分类摘要 -->
+            <div id="selectedSummary" style="margin-bottom:12px;min-height:24px;"></div>
+
+            <!-- 一级类目下拉 -->
+            <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label>一级类目</label>
+                    <select id="level1Picker" onchange="showLevel1Group()">
+                        <option value="">选择一级类目...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 二级复选框区，按一级分组隐藏 -->
+            <div id="level2Groups">
             {% for level1_item in cat_tree %}
-                <fieldset style="margin-bottom:14px;">
-                    <strong style="font-size:.9rem;color:#1e293b;">{{ level1_item.level1 }}</strong>
-                    <div class="checkbox-group" style="margin-top:4px;">
+                <div class="level1-group" data-level1="{{ level1_item.level1 }}" style="display:none;">
+                    <strong style="font-size:.9rem;color:#6366f1;">{{ level1_item.level1 }}</strong>
+                    <div style="margin-top:4px;">
                         {% for cat in level1_item.categories %}
-                            <label>
-                                <input type="checkbox" name="category_ids" value="{{ cat.id }}"
-                                    {% if supplier and cat.id in supplier.cat_ids %}checked{% endif %}>
-                                {{ cat.level2 }}
-                            </label>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;" class="cat-row" data-cat-id="{{ cat.id }}">
+                                <label style="min-width:130px;font-weight:400;cursor:pointer;">
+                                    <input type="checkbox" name="category_ids" value="{{ cat.id }}"
+                                        {% if supplier and cat.id in supplier.cat_ids %}checked{% endif %}>
+                                    {{ cat.level2 }}
+                                </label>
+                                <input type="text" name="level3_{{ cat.id }}"
+                                    placeholder="三级类目（可选）"
+                                    value="{{ supplier.cat_ids[cat.id] if supplier and cat.id in supplier.cat_ids and supplier.cat_ids[cat.id] else '' }}"
+                                    style="flex:1;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+                            </div>
                         {% endfor %}
                     </div>
-                </fieldset>
+                </div>
             {% endfor %}
+            </div>
         </div>
 
         <div class="form-section">
@@ -67,4 +90,71 @@
     </form>
 </div>
 
+<script>
+let allLevel1Data = [];
+
+async function initLevel1Picker() {
+    try {
+        let resp = await fetch('/api/categories');
+        allLevel1Data = await resp.json();
+        let sel = document.getElementById('level1Picker');
+        allLevel1Data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.level1;
+            opt.textContent = cat.level1;
+            sel.appendChild(opt);
+        });
+        // 编辑模式：自动打开第一个有勾选的类目
+        {% if supplier and supplier.cat_ids %}
+            let groups = document.querySelectorAll('.level1-group');
+            for (let g of groups) {
+                let checked = g.querySelector('input[type=checkbox]:checked');
+                if (checked) {
+                    document.getElementById('level1Picker').value = g.dataset.level1;
+                    showLevel1Group();
+                    break;
+                }
+            }
+        {% endif %}
+        updateSummary();
+    } catch(e) {}
+}
+
+function showLevel1Group() {
+    let l1 = document.getElementById('level1Picker').value;
+    document.querySelectorAll('.level1-group').forEach(g => {
+        g.style.display = (g.dataset.level1 === l1) ? '' : 'none';
+    });
+}
+
+function updateSummary() {
+    let checked = document.querySelectorAll('#level2Groups input[type=checkbox]:checked');
+    let summary = document.getElementById('selectedSummary');
+    if (checked.length === 0) {
+        summary.innerHTML = '<span style="color:#94a3b8;font-size:.85rem;">暂未选择分类</span>';
+        return;
+    }
+    let tags = [];
+    checked.forEach(cb => {
+        let row = cb.closest('.cat-row');
+        let l1 = row.closest('.level1-group').dataset.level1;
+        let l2 = cb.parentElement.textContent.trim();
+        let l3 = row.querySelector('input[type=text]').value.trim();
+        let label = l1 + '→' + l2 + (l3 ? '（'+l3+'）' : '');
+        tags.push('<span class="tag" style="margin:2px;">'+label+'</span>');
+    });
+    summary.innerHTML = tags.join('');
+}
+
+// 监听复选框变化更新摘要
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'category_ids') updateSummary();
+});
+// 监听三级输入变化
+document.addEventListener('input', function(e) {
+    if (e.target.name && e.target.name.startsWith('level3_')) updateSummary();
+});
+
+document.addEventListener('DOMContentLoaded', initLevel1Picker);
+</script>
 {% endblock %}

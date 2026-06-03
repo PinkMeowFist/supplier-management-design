@@ -7,17 +7,16 @@
     <a href="/products/new" class="btn btn-primary">+ 新增产品</a>
 </div>
 
-<form class="filter-bar" method="get">
+<form class="filter-bar" method="get" id="filterForm">
     <label>搜索</label>
     <input type="text" name="q" placeholder="产品名 / SKU / 供应商" value="{{ request.args.get('q','') }}">
-    <label>分类</label>
-    <select name="category_id">
+    <label>一级分类</label>
+    <select name="level1" id="level1Select" onchange="loadLevel2()">
         <option value="">全部</option>
-        {% for cat in categories %}
-            <option value="{{ cat.id }}" {% if request.args.get('category_id','')==cat.id|string %}selected{% endif %}>
-                {{ cat.level1 }} → {{ cat.level2 }}
-            </option>
-        {% endfor %}
+    </select>
+    <label>二级分类</label>
+    <select name="category_id" id="level2Select">
+        <option value="">全部</option>
     </select>
     <label>供应商</label>
     <select name="supplier_id">
@@ -74,4 +73,36 @@
     </tbody>
 </table>
 
+<script>
+async function loadLevel2() {
+    let l1 = document.getElementById('level1Select').value;
+    let l2 = document.getElementById('level2Select');
+    l2.innerHTML = '<option value="">全部</option>';
+    if (!l1) return;
+    try {
+        let resp = await fetch('/api/categories?level1=' + encodeURIComponent(l1));
+        let data = await resp.json();
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.level2;
+            l2.appendChild(opt);
+        });
+    } catch(e) {}
+}
+async function initLevel1() {
+    let l1 = document.getElementById('level1Select');
+    try {
+        let resp = await fetch('/api/categories');
+        let data = await resp.json();
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.level1;
+            opt.textContent = cat.level1;
+            l1.appendChild(opt);
+        });
+    } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', initLevel1);
+</script>
 {% endblock %}

@@ -28,7 +28,7 @@
             <div class="label">主营分类</div>
             <div class="value">
                 {% for cat in supplier.categories %}
-                    <span class="tag">{{ cat.level1 }}→{{ cat.level2 }}</span>
+                    <span class="tag">{{ cat.level1 }}→{{ cat.level2 }}{% if cat.level3 %}（{{ cat.level3 }}）{% endif %}</span>
                 {% else %}
                     <span style="color:#94a3b8;">未分类</span>
                 {% endfor %}
