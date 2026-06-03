@@ -127,6 +127,14 @@ function showLevel1Group() {
     });
 }
 
+function removeCategory(catId) {
+    let cb = document.querySelector('#level2Groups input[type=checkbox][value="' + catId + '"]');
+    if (cb) {
+        cb.checked = false;
+        updateSummary();
+    }
+}
+
 function updateSummary() {
     let checked = document.querySelectorAll('#level2Groups input[type=checkbox]:checked');
     let summary = document.getElementById('selectedSummary');
@@ -136,12 +144,18 @@ function updateSummary() {
     }
     let tags = [];
     checked.forEach(cb => {
+        let catId = cb.value;
         let row = cb.closest('.cat-row');
         let l1 = row.closest('.level1-group').dataset.level1;
         let l2 = cb.parentElement.textContent.trim();
         let l3 = row.querySelector('input[type=text]').value.trim();
         let label = l1 + '→' + l2 + (l3 ? '（'+l3+'）' : '');
-        tags.push('<span class="tag" style="margin:2px;">'+label+'</span>');
+        tags.push('<span class="tag" style="margin:2px;display:inline-flex;align-items:center;gap:4px;">'
+            + label
+            + '<span onclick="event.stopPropagation();removeCategory(' + catId + ')" '
+            + 'style="cursor:pointer;color:#ef4444;font-weight:bold;margin-left:2px;" '
+            + 'title="移除">✕</span>'
+            + '</span>');
     });
     summary.innerHTML = tags.join('');
 }
