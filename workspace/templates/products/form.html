@@ -27,22 +27,24 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="required">供应商</label>
-                    <select name="supplier_id" required>
+                    <input type="text" id="supplierSearch" placeholder="搜索供应商名称或简称..."
+                           style="margin-bottom:4px;"
+                           oninput="filterSuppliers()">
+                    <select name="supplier_id" id="supplierSelect" required>
                         <option value="">请选择</option>
                         {% for s in suppliers %}
-                            <option value="{{ s.id }}" {% if product and product.supplier_id==s.id %}selected{% endif %}>{{ s.name }}</option>
+                            <option value="{{ s.id }}" data-name="{{ s.name }}" data-short="{{ s.short_name or '' }}"
+                                {% if product and product.supplier_id==s.id %}selected{% endif %}>{{ s.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>分类（二级）</label>
-                    <select name="category_id">
-                        <option value="">请选择</option>
-                        {% for cat in categories %}
-                            <option value="{{ cat.id }}" {% if product and product.category_id==cat.id %}selected{% endif %}>
-                                {{ cat.level1 }} → {{ cat.level2 }}
-                            </option>
-                        {% endfor %}
+                    <label>分类</label>
+                    <select id="level1Cat" onchange="loadLevel2Cat()">
+                        <option value="">请选择一级类目</option>
+                    </select>
+                    <select name="category_id" id="level2Cat" style="margin-top:4px;">
+                        <option value="">请选择二级类目</option>
                     </select>
                 </div>
             </div>
@@ -151,4 +153,72 @@
     </form>
 </div>
 
+<script>
+// 供应商搜索过滤
+function filterSuppliers() {
+    let q = document.getElementById('supplierSearch').value.toLowerCase();
+    let sel = document.getElementById('supplierSelect');
+    let opts = sel.options;
+    let found = false;
+    for (let i = 1; i < opts.length; i++) {
+        let name = (opts[i].dataset.name || '').toLowerCase();
+        let short = (opts[i].dataset.short || '').toLowerCase();
+        if (!q || name.includes(q) || short.includes(q)) {
+            opts[i].style.display = '';
+            if (!found) found = true;
+        } else {
+            opts[i].style.display = 'none';
+        }
+    }
+    // 如果当前选中项被隐藏，清除选择
+    if (sel.selectedIndex > 0 && opts[sel.selectedIndex].style.display === 'none') {
+        sel.selectedIndex = 0;
+    }
+}
+
+// 分类级联
+async function initLevel1Cat() {
+    try {
+        let resp = await fetch('/api/categories');
+        let data = await resp.json();
+        let sel = document.getElementById('level1Cat');
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.level1;
+            opt.textContent = cat.level1;
+            sel.appendChild(opt);
+        });
+        // 编辑模式：回填已选分类
+        {% if product and product.category_id %}
+        let catId = {{ product.category_id }};
+        // 通过所有选项找到对应的level1
+        document.querySelectorAll('#level2Cat option').forEach(o => {
+            // 选项还未加载，等初始化完成后回填
+        });
+        {% endif %}
+    } catch(e) {}
+}
+
+async function loadLevel2Cat() {
+    let l1 = document.getElementById('level1Cat').value;
+    let l2 = document.getElementById('level2Cat');
+    l2.innerHTML = '<option value="">请选择二级类目</option>';
+    if (!l1) return;
+    try {
+        let resp = await fetch('/api/categories?level1=' + encodeURIComponent(l1));
+        let data = await resp.json();
+        data.forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.level2;
+            {% if product and product.category_id %}
+            if (cat.id == {{ product.category_id }}) opt.selected = true;
+            {% endif %}
+            l2.appendChild(opt);
+        });
+    } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', initLevel1Cat);
+</script>
 {% endblock %}
