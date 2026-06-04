@@ -585,11 +585,11 @@ def supplier_delete(sid):
 @app.route('/products')
 def product_list():
     """产品列表"""
-    search = request.form.get('search', '') or request.args.get('search', '').strip()
+    search = request.args.get('q', '').strip() or request.form.get('search', '').strip()
     supplier_id = request.args.get('supplier_id', '').strip()
     category_id = request.args.get('category_id', '').strip()
     new_only = request.args.get('new_only', '').strip()
-    price_changed = request.args.get('price_changed', '').strip()
+    sort = request.args.get('sort', '').strip()
 
     db = get_db()
     query = '''
@@ -635,6 +635,21 @@ def product_list():
         pdict['price_change'] = get_price_change(p['erp_sku'])
         product_list.append(pdict)
 
+    # 排序
+    if sort == 'price_asc':
+        product_list.sort(key=lambda p: p.get('latest_price') or 999999)
+    elif sort == 'price_desc':
+        product_list.sort(key=lambda p: p.get('latest_price') or 0, reverse=True)
+    elif sort == 'date':
+        product_list.sort(key=lambda p: p.get('latest_price_date') or '', reverse=True)
+
+    # 品类统计（只在筛选了分类时显示）
+    stats = None
+    if product_list:
+        prices = [p.get('latest_price') for p in product_list if p.get('latest_price')]
+        if prices:
+            stats = {'avg': round(sum(prices)/len(prices), 2), 'min': min(prices), 'max': max(prices), 'count': len(prices)}
+
     suppliers = db.execute("SELECT id, short_name, name FROM suppliers ORDER BY short_name").fetchall()
     categories = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     db.close()
@@ -645,7 +660,8 @@ def product_list():
                            selected_supplier=supplier_id,
                            selected_category=category_id,
                            new_only=new_only,
-                           price_changed=price_changed)
+                           sort=sort,
+                           stats=stats)
 
 
 @app.route('/products/<sku>')
@@ -1100,6 +1116,55 @@ def product_upload_image(sku):
 def uploaded_file(filepath):
     """提供图片访问"""
     return send_from_directory(str(UPLOAD_DIR), filepath)
+
+
+# ============================================================
+# 产品对比
+# ============================================================
+
+@app.route('/products/compare')
+def product_compare():
+    """产品对比"""
+    ids_param = request.args.get('ids', '')
+    skus = [s.strip() for s in ids_param.split(',') if s.strip()]
+    if len(skus) < 2:
+        flash("请至少选择 2 个产品进行对比", "error")
+        return redirect(url_for('product_list'))
+    if len(skus) > 5:
+        skus = skus[:5]
+        flash("最多对比 5 个产品", "info")
+
+    db = get_db()
+    products = []
+    for sku in skus:
+        p = db.execute('''
+            SELECT p.*, s.name as supplier_name,
+                   c.level1, c.level2
+            FROM products p
+            JOIN suppliers s ON p.supplier_id = s.id
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.erp_sku = ?
+        ''', (sku,)).fetchone()
+        if p:
+            pdict = dict(p)
+            pdict['cat_name'] = (p['level1'] + '→' + p['level2']) if p['level1'] else None
+            latest = get_latest_price(sku)
+            pdict['latest_price'] = latest['price'] if latest else None
+            pdict['latest_price_date'] = latest['price_date'] if latest else None
+            products.append(pdict)
+
+    if len(products) < 2:
+        flash("所选产品不足 2 个", "error")
+        db.close()
+        return redirect(url_for('product_list'))
+
+    # 找出最低价
+    min_price = min((p.get('latest_price') or float('inf')) for p in products)
+
+    db.close()
+    return render_template('products/compare.html',
+                           products=products,
+                           min_price=min_price)
 
 
 # ============================================================

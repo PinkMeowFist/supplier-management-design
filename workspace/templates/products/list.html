@@ -42,13 +42,30 @@
     <a href="/products" class="btn btn-secondary btn-sm">清除</a>
 </form>
 
+<!-- 排序按钮 -->
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:.85rem;color:#64748b;">
+    排序:
+    <button type="button" onclick="setSort('price_asc')" class="btn btn-sm {{ 'btn-primary' if sort=='price_asc' else 'btn-secondary' }}">💰 价格从低到高</button>
+    <button type="button" onclick="setSort('price_desc')" class="btn btn-sm {{ 'btn-primary' if sort=='price_desc' else 'btn-secondary' }}">💰 价格从高到低</button>
+    <button type="button" onclick="setSort('date')" class="btn btn-sm {{ 'btn-primary' if sort=='date' else 'btn-secondary' }}">📅 最新报价</button>
+</div>
+
+<!-- 对比栏 -->
+<div id="compareBar" style="display:none;padding:10px 14px;background:#e0e7ff;border-radius:8px;margin-bottom:12px;font-size:.85rem;align-items:center;gap:12px;">
+    <strong>已选对比:</strong>
+    <span id="compareLabels"></span>
+    <a href="#" id="compareLink" class="btn btn-sm btn-primary" style="margin-left:auto;">📊 对比</a>
+    <button onclick="clearCompare()" class="btn btn-sm btn-secondary">清空</button>
+</div>
+
 <table>
     <thead>
-        <tr><th>SKU</th><th>产品名</th><th>供应商</th><th>分类</th><th>最新报价</th><th>报价日期</th><th>变动</th><th>新品</th><th>操作</th></tr>
+        <tr><th style="width:30px;">☐</th><th>SKU</th><th>产品名</th><th>供应商</th><th>分类</th><th>最新报价</th><th>报价日期</th><th>变动</th><th>新品</th><th>操作</th></tr>
     </thead>
     <tbody>
         {% for p in products %}
         <tr>
+            <td><input type="checkbox" class="compare-cb" data-sku="{{ p.erp_sku }}" data-name="{{ p.name }} ({{ p.supplier_name }} ¥{{ '%.2f'|format(p.latest_price) if p.latest_price else '—' }})" onchange="updateCompare()"></td>
             <td>{{ p.erp_sku or '-' }}</td>
             <td><a href="/products/{{ p.erp_sku }}">{{ p.name }}</a></td>
             <td><a href="/suppliers/{{ p.supplier_id }}">{{ p.supplier_name }}</a></td>
@@ -75,12 +92,50 @@
             </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:40px;">暂无产品</td></tr>
+        <tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:40px;">暂无产品</td></tr>
         {% endfor %}
     </tbody>
 </table>
 
+{% if stats %}
+<div style="margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:8px;font-size:.85rem;color:#065f46;">
+    📊 <strong>品类统计：</strong> 均价 ¥{{ "%.2f"|format(stats.avg) }} | 最低 ¥{{ "%.2f"|format(stats.min) }} | 最高 ¥{{ "%.2f"|format(stats.max) }} | 共 {{ stats.count }} 个有报价的产品
+</div>
+{% endif %}
+
 <script>
+// 对比逻辑
+let compareSkus = [];
+
+function updateCompare() {
+    compareSkus = [];
+    document.querySelectorAll('.compare-cb:checked').forEach(cb => {
+        compareSkus.push({sku: cb.dataset.sku, label: cb.dataset.name});
+    });
+    let bar = document.getElementById('compareBar');
+    let labels = document.getElementById('compareLabels');
+    let link = document.getElementById('compareLink');
+
+    if (compareSkus.length >= 2) {
+        bar.style.display = 'flex';
+        labels.innerHTML = compareSkus.map(c => '<span class="tag" style="margin:2px;">'+c.label+'</span>').join('');
+        link.href = '/products/compare?ids=' + compareSkus.map(c => c.sku).join(',');
+    } else if (compareSkus.length === 1) {
+        bar.style.display = 'flex';
+        labels.innerHTML = '<span class="tag" style="margin:2px;">'+compareSkus[0].label+'</span><span style="color:#94a3b8;">（再选 1 个）</span>';
+        link.removeAttribute('href');
+        link.style.opacity = '0.5';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function clearCompare() {
+    document.querySelectorAll('.compare-cb:checked').forEach(cb => cb.checked = false);
+    updateCompare();
+}
+
+// 级联筛选
 async function loadLevel2() {
     let l1 = document.getElementById('level1Select').value;
     let l2 = document.getElementById('level2Select');
@@ -110,6 +165,14 @@ async function initLevel1() {
         });
     } catch(e) {}
 }
+function setSort(val) {
+    let form = document.getElementById('filterForm');
+    let input = document.createElement('input');
+    input.type = 'hidden'; input.name = 'sort'; input.value = val;
+    form.appendChild(input);
+    form.submit();
+}
+
 document.addEventListener('DOMContentLoaded', initLevel1);
 </script>
 {% endblock %}

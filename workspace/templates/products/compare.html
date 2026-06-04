@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block title %}产品对比{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>📊 产品对比</h1>
+    <a href="/products" class="btn btn-secondary">← 返回列表</a>
+</div>
+
+<div class="card" style="overflow-x:auto;">
+    <table>
+        <thead>
+            <tr>
+                <th style="min-width:100px;"></th>
+                {% for p in products %}
+                <th style="min-width:160px;text-align:center;{% if p.latest_price == min_price %}background:#d1fae5;{% endif %}">
+                    <a href="/products/{{ p.erp_sku }}">{{ p.name }}</a>
+                    <div style="font-weight:400;font-size:.8rem;color:#64748b;">{{ p.supplier_name }}</div>
+                    {% if p.latest_price == min_price %}
+                        <span class="badge badge-down" style="margin-top:2px;">💰 最低价</span>
+                    {% endif %}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>报价</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;font-weight:bold;font-size:1.1rem;{% if p.latest_price == min_price %}color:#059669;{% endif %}">
+                    {{ "¥%.2f"|format(p.latest_price) if p.latest_price else '-' }}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>报价日期</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.latest_price_date or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>分类</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.cat_name or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>单套包装方式</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.package_type or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>单套包装尺寸</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.package_size or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>单套重量</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.package_weight or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>外箱尺寸</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.carton_size or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>每箱套数</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.carton_quantity or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>外箱重量</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.carton_weight or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>1688链接</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">
+                    {% if p.product_url %}
+                        <a href="{{ p.product_url }}" target="_blank">📎 打开</a>
+                    {% else %}-{% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>备注</strong></td>
+                {% for p in products %}
+                <td style="text-align:center;">{{ p.notes or '-' }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
