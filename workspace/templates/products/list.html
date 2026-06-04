@@ -4,7 +4,14 @@
 
 <div class="page-header">
     <h1>📦 产品报价列表</h1>
-    <a href="/products/new" class="btn btn-primary">+ 新增产品</a>
+    <div style="display:flex;gap:8px;">
+        <a href="/products/template" class="btn btn-secondary">📥 下载模板</a>
+        <form id="importForm" action="/products/import" method="post" enctype="multipart/form-data" style="display:inline;">
+            <input type="file" name="file" id="importFile" accept=".xlsx" style="display:none;" onchange="document.getElementById('importForm').submit()">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📤 导入Excel</button>
+        </form>
+        <a href="/products/new" class="btn btn-primary">+ 新增产品</a>
+    </div>
 </div>
 
 <form class="filter-bar" method="get" id="filterForm">

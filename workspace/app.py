@@ -5,9 +5,12 @@ import sqlite3
 import datetime
 from pathlib import Path
 from werkzeug.utils import secure_filename
+from io import BytesIO
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, jsonify, send_from_directory
+    flash, jsonify, send_file, send_from_directory
 )
 
 app = Flask(__name__)
@@ -873,6 +876,170 @@ def product_delete(sku):
     db.commit()
     db.close()
     flash("产品已删除", "success")
+    return redirect(url_for('product_list'))
+
+
+# ============================================================
+# Excel 导入
+# ============================================================
+
+EXCEL_HEADERS = [
+    'ERP-SKU', '产品名称', '供应商名称', '分类（一级→二级）', '1688链接',
+    '单套包装方式', '单套包装尺寸', '单套重量', '外箱尺寸', '每箱套数',
+    '外箱重量', '报价（元）', '报价日期', '新品', '新品上架日期', '备注'
+]
+
+
+@app.route('/products/template')
+def excel_template():
+    """下载Excel模板"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "产品导入模板"
+
+    # 表头样式
+    header_fill = PatternFill(start_color="6366F1", end_color="6366F1", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True, size=11)
+    thin_border = None  # openpyxl borders if wanted
+
+    for col_idx, h in enumerate(EXCEL_HEADERS, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # 示例数据
+    example = [
+        'TOY-2401-001', '消防局积木套装', 'XX玩具有限公司', '玩具→积木',
+        'https://detail.1688.com/...', '彩盒', '35×25×8', '580g',
+        '72×52×42', '24', '14.5kg', '25.80', '2025-01-15',
+        '是', '2025-01-10', '满1000可议价'
+    ]
+    for col_idx, val in enumerate(example, 1):
+        ws.cell(row=2, column=col_idx, value=val).alignment = Alignment(vertical='center')
+
+    # 列宽
+    widths = [16, 20, 18, 18, 30, 12, 12, 10, 12, 10, 10, 10, 12, 8, 14, 18]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = w
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True, download_name='产品导入模板.xlsx')
+
+
+@app.route('/products/import', methods=['POST'])
+def excel_import():
+    """导入Excel产品数据"""
+    file = request.files.get('file')
+    if not file or not file.filename.endswith('.xlsx'):
+        flash("请上传 .xlsx 文件", "error")
+        return redirect(url_for('product_list'))
+
+    try:
+        wb = load_workbook(filename=BytesIO(file.read()), data_only=True)
+    except Exception:
+        flash("Excel 文件损坏或格式错误", "error")
+        return redirect(url_for('product_list'))
+
+    ws = wb.active
+    rows = list(ws.iter_rows(min_row=2, values_only=True))  # 跳过表头
+
+    if not rows:
+        flash("Excel 文件没有数据", "error")
+        wb.close()
+        return redirect(url_for('product_list'))
+
+    db = get_db()
+    # 预加载供应商映射 {name: id} + {short_name: id}
+    suppliers = db.execute("SELECT id, name, short_name FROM suppliers").fetchall()
+    name_to_id = {}
+    short_to_id = {}
+    for s in suppliers:
+        name_to_id[s['name']] = s['id']
+        if s['short_name']:
+            short_to_id[s['short_name']] = s['id']
+
+    # 预加载分类映射 {"玩具→积木": category_id}
+    cats = db.execute("SELECT id, level1, level2 FROM categories").fetchall()
+    cat_map = {f"{c['level1']}→{c['level2']}": c['id'] for c in cats}
+
+    success = 0
+    failures = []
+
+    for row_idx, row in enumerate(rows):
+        line = row_idx + 2  # Excel行号
+        vals = [str(c).strip() if c else '' for c in row]
+        if len(vals) < 16:
+            vals.extend([''] * (16 - len(vals)))
+
+        sku, name, supplier_name, cat_str, url, pkg_type, pkg_size, pkg_weight, \
+            carton_size, carton_qty, carton_weight, price_str, price_date, is_new_str, new_date, notes = vals
+
+        # 必填检查
+        if not name:
+            failures.append(f"第{line}行：产品名称为空")
+            continue
+        if not supplier_name:
+            failures.append(f"第{line}行：供应商名称为空")
+            continue
+
+        # 供应商匹配
+        sid = name_to_id.get(supplier_name) or short_to_id.get(supplier_name)
+        if not sid:
+            failures.append(f"第{line}行：供应商「{supplier_name}」不存在")
+            continue
+
+        # SKU处理
+        if not sku:
+            sku = f"PROD-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}-{line}"
+        existing = db.execute("SELECT erp_sku FROM products WHERE erp_sku=?", (sku,)).fetchone()
+        if existing:
+            failures.append(f"第{line}行：SKU「{sku}」已存在")
+            continue
+
+        # 分类匹配
+        cat_id = cat_map.get(cat_str) if cat_str else None
+
+        # is_new
+        is_new = 1 if is_new_str and is_new_str in ('是', '1', 'yes', 'Yes', 'YES') else 0
+
+        # 价格
+        price = float(price_str) if price_str else None
+        price_date = price_date if price_date else datetime.date.today().isoformat()
+
+        # 插入产品
+        db.execute('''
+            INSERT INTO products (erp_sku, supplier_id, name, category_id, product_url,
+                package_type, package_size, package_weight, carton_size, carton_quantity,
+                carton_weight, is_new, new_product_date, notes)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ''', (sku, sid, name, cat_id, url or None,
+              pkg_type or None, pkg_size or None, pkg_weight or None,
+              carton_size or None, carton_qty or None if carton_qty else None,
+              carton_weight or None, is_new, new_date or None, notes or None))
+
+        if price:
+            db.execute(
+                "INSERT INTO price_history (erp_sku, price, price_date) VALUES (?,?,?)",
+                (sku, price, price_date)
+            )
+
+        success += 1
+
+    db.commit()
+    db.close()
+
+    if success > 0:
+        flash(f"✅ 导入成功 {success} 条" + (f"，失败 {len(failures)} 条" if failures else ""), "success")
+    if failures:
+        for fmsg in failures[:10]:  # 最多显示前10条失败信息
+            flash(fmsg, "error")
+        if len(failures) > 10:
+            flash(f"... 还有 {len(failures) - 10} 条失败", "error")
+
     return redirect(url_for('product_list'))
 
 
