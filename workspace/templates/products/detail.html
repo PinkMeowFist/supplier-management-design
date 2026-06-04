@@ -64,7 +64,7 @@
     <div class="image-gallery">
         {% for img in images %}
         <div class="image-card">
-            <img src="/uploads/{{ img.filename }}" alt="产品图片">
+            <img src="/uploads/{{ product.erp_sku }}/{{ img.filename }}" alt="产品图片">
             <div class="img-name">{{ img.filename }}</div>
             <div class="img-actions">
                 <span style="font-size:.7rem;color:#94a3b8;">#{{ img.sort_order }}</span>

@@ -1043,7 +1043,7 @@ def excel_import():
     return redirect(url_for('product_list'))
 
 
-@app.route('/products/<sku>/images/<int:img_id>/delete', methods=['POST'])
+@app.route('/products/<sku>/delete-image/<int:img_id>', methods=['POST'])
 def image_delete(sku, img_id):
     """删除产品图片"""
     db = get_db()
