@@ -19,7 +19,7 @@ app.secret_key = 'supplier-mgmt-secret-key-2025'
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / 'supplier.db'
 UPLOAD_DIR = BASE_DIR / 'uploads'
-QUOTATION_DIR = BASE_DIR / 'uploads' / 'quotations'
+QUOTATION_DIR = BASE_DIR / 'quotations'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 
 
@@ -1318,18 +1318,28 @@ def quotation_upload(sid):
         return redirect(url_for('supplier_detail', sid=sid))
 
     notes = request.form.get('notes', '').strip()
-    ts = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'dat'
-    safe_name = secure_filename(file.filename)
-    filename = f"{ts}_{safe_name}"
+    today_str = datetime.date.today().isoformat()
+    ext = file.filename.rsplit('.', 1)[-1] if '.' in file.filename else 'dat'
+    
+    # 获取供应商名称用于文件命名
+    db = get_db()
+    s = db.execute("SELECT name FROM suppliers WHERE id=?", (sid,)).fetchone()
+    supplier_name = s['name'] if s else f'Supplier{sid}'
+    # 只过滤文件名非法字符，保留中文
+    def safe_name(s):
+        for ch in r'\/:*?"<>|':
+            s = s.replace(ch, '_')
+        return s.strip()
+    safe_sname = safe_name(supplier_name)
+    safe_dname = safe_name(display_name)
+    filename = f"{safe_sname}_{safe_dname}_{today_str}.{ext}"
+    filename = safe_name(filename)  # 最终确保无非法字符
 
-    # 保存文件
-    folder = QUOTATION_DIR / str(sid)
-    folder.mkdir(parents=True, exist_ok=True)
-    file.save(str(folder / filename))
+    # 保存文件到平层目录
+    QUOTATION_DIR.mkdir(parents=True, exist_ok=True)
+    file.save(str(QUOTATION_DIR / filename))
 
     # 写数据库
-    db = get_db()
     db.execute(
         "INSERT INTO quotation_files (supplier_id, display_name, filename, original_name, notes) VALUES (?,?,?,?,?)",
         (sid, display_name, filename, file.filename, notes)
@@ -1340,10 +1350,10 @@ def quotation_upload(sid):
     return redirect(url_for('supplier_detail', sid=sid))
 
 
-@app.route('/quotations/<int:sid>/<path:filepath>')
-def quotation_serve(sid, filepath):
+@app.route('/quotations/<path:filepath>')
+def quotation_serve(filepath):
     """打开报价表文件"""
-    return send_from_directory(str(QUOTATION_DIR / str(sid)), filepath)
+    return send_from_directory(str(QUOTATION_DIR), filepath)
 
 
 @app.route('/quotations/<int:qid>/delete', methods=['POST'])
@@ -1353,7 +1363,7 @@ def quotation_delete(qid):
     qf = db.execute("SELECT * FROM quotation_files WHERE id=?", (qid,)).fetchone()
     if qf:
         sid = qf['supplier_id']
-        filepath = QUOTATION_DIR / str(sid) / qf['filename']
+        filepath = QUOTATION_DIR / qf['filename']
         if filepath.exists():
             filepath.unlink()
         db.execute("DELETE FROM quotation_files WHERE id=?", (qid,))
@@ -1361,6 +1371,16 @@ def quotation_delete(qid):
         flash("报价表已删除", "success")
     db.close()
     return redirect(url_for('supplier_detail', sid=sid))
+
+
+@app.route('/quotations/open-folder')
+def quotation_open_folder():
+    """打开报价表文件夹"""
+    import subprocess
+    QUOTATION_DIR.mkdir(parents=True, exist_ok=True)
+    subprocess.Popen(['explorer', str(QUOTATION_DIR)])
+    flash("已打开报价表文件夹", "success")
+    return redirect(request.referrer or url_for('supplier_list'))
 
 
 # ============================================================
@@ -1518,10 +1538,6 @@ def api_search():
 # ============================================================
 
 if __name__ == '__main__':
-    if not DB_PATH.exists():
-        init_db()
-        print("数据库初始化完成（含1688分类预置）")
-    else:
-        print("数据库已存在")
+    init_db()
     print("启动服务器: http://localhost:5000")
     app.run(debug=True, host='127.0.0.1', port=5000)
