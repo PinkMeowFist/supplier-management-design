@@ -234,6 +234,20 @@ python app.py
 > 跟进类型包括：报价咨询、新品问询、常规维护、其他。
 > 跟进记录可关联具体产品 SKU，也可不关联（通用沟通）。
 
+#### 8. quotation_files — 报价表文件
+
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| id | INTEGER PK | 自动编号 | 1 |
+| supplier_id | FK | 关联供应商 | 4 |
+| display_name | TEXT | 自定义名称 | 1月消防局积木报价 |
+| filename | TEXT | 存储文件名（含时间戳） | 20250115_143022_XX玩具报价.xlsx |
+| original_name | TEXT | 上传前原始名 | XX玩具报价表.xlsx |
+| notes | TEXT | 备注 | 含5款新品报价 |
+| uploaded_at | DATETIME | 上传时间 | |
+
+> 文件存储在 `uploads/quotations/{supplier_id}/{filename}`。支持上传任意格式文件（Excel/PDF/图片），点击即用系统默认程序打开。
+
 ### 核心业务 SQL 查询示例
 
 **筛选某二级分类下的产品，按价格排序：**
@@ -306,7 +320,7 @@ WHERE is_replied = 0 AND next_follow_date <= '2025-06-04'
 |------|------|------|
 | 仪表盘 | `/` | 统计概览、最近变动、快捷入口 |
 | 供应商列表 | `/suppliers` | 级联筛选、搜索、CRUD |
-| 供应商详情 | `/suppliers/<id>` | 档案+产品+跟进 |
+| 供应商详情 | `/suppliers/<id>` | 档案+产品+跟进+报价表文件 |
 | 新增供应商 | `/suppliers/new` | 级联选择分类+三级 |
 | 产品列表 | `/products` | 筛选+排序+对比+Excel导入 |
 | 产品详情 | `/products/<sku>` | 完整信息+报价历史+趋势图+图片 |
@@ -410,6 +424,7 @@ pyinstaller --onefile --add-data "templates;templates" --add-data "static;static
 | v1.0 | 2025-01 | 初始版本：供应商/产品/报价/跟进/新品动态 |
 | v1.1 | 2025-06 | 36 类目扩展、级联筛选、三级类目、供应商搜索过滤 |
 | v1.2 | 2025-06 | 分类标签 ✕ 移除、Excel 导入、比价排序+产品对比 |
+| v1.3 | 2025-06 | 供应商报价表文件管理（上传/打开/删除）、修复编辑供应商分类丢失Bug |
 
 ---
 

@@ -102,4 +102,59 @@
     {% endif %}
 </div>
 
+<!-- 报价表文件 -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">📁 报价表文件（{{ quotations|length }} 个）</h2>
+        <button class="btn btn-sm btn-primary" onclick="document.getElementById('quotationUpload').style.display='block'">+ 上传报价表</button>
+    </div>
+
+    <div id="quotationUpload" style="display:none;background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:12px;">
+        <form action="/suppliers/{{ supplier.id }}/quotation/upload" method="post" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>选择文件</label>
+                    <input type="file" name="file" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">显示名称</label>
+                    <input type="text" name="display_name" placeholder="如：1月消防局积木报价" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <input type="text" name="notes" placeholder="如：含5款新品报价">
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button type="submit" class="btn btn-sm btn-primary">上传</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('quotationUpload').style.display='none'">取消</button>
+            </div>
+        </form>
+    </div>
+
+    {% if quotations %}
+    <table>
+        <thead><tr><th>名称</th><th>原始文件</th><th>备注</th><th>上传时间</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for q in quotations %}
+            <tr>
+                <td><strong>{{ q.display_name }}</strong></td>
+                <td style="font-size:.8rem;color:#64748b;">{{ q.original_name }}</td>
+                <td>{{ q.notes or '-' }}</td>
+                <td>{{ q.uploaded_at[:16] }}</td>
+                <td>
+                    <a href="/quotations/{{ supplier.id }}/{{ q.filename }}" target="_blank" class="btn btn-sm btn-success">📎 打开</a>
+                    <form action="/quotations/{{ q.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('删除这个报价表？');">
+                        <button class="btn btn-sm btn-danger">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#94a3b8;">暂无报价表文件</p>
+    {% endif %}
+</div>
+
 {% endblock %}

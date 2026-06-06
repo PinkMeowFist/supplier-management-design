@@ -19,6 +19,7 @@ app.secret_key = 'supplier-mgmt-secret-key-2025'
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / 'supplier.db'
 UPLOAD_DIR = BASE_DIR / 'uploads'
+QUOTATION_DIR = BASE_DIR / 'uploads' / 'quotations'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 
 
@@ -123,6 +124,17 @@ def init_db():
             created_at DATETIME DEFAULT (datetime('now','localtime')),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
             FOREIGN KEY (erp_sku) REFERENCES products(erp_sku) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS quotation_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_id INTEGER NOT NULL,
+            display_name TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            original_name TEXT,
+            notes TEXT,
+            uploaded_at DATETIME DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE
         );
     ''')
 
@@ -459,6 +471,11 @@ def supplier_detail(sid):
         ORDER BY fu.follow_date DESC
     ''', (sid,)).fetchall()
 
+    # 报价表文件
+    quotations = db.execute(
+        "SELECT * FROM quotation_files WHERE supplier_id=? ORDER BY uploaded_at DESC", (sid,)
+    ).fetchall()
+
     # 转成dict以避免模板中Row对象不可赋属性问题
     supplier_dict = dict(supplier)
     supplier_dict['categories'] = cats
@@ -468,6 +485,7 @@ def supplier_detail(sid):
     return render_template('suppliers/detail.html',
                            supplier=supplier_dict,
                            follow_ups=follow_ups,
+                           quotations=quotations,
                            today=datetime.date.today().isoformat())
 
 
@@ -551,7 +569,7 @@ def supplier_edit(sid):
 
     # 已选分类（含level3）
     selected = db.execute("SELECT category_id, level3 FROM supplier_categories WHERE supplier_id=?", (sid,)).fetchall()
-    selected_cat_ids = {str(r['category_id']): r['level3'] for r in selected}
+    selected_cat_ids = {r['category_id']: r['level3'] for r in selected}
     all_cats = db.execute("SELECT * FROM categories ORDER BY sort_order, level2").fetchall()
     cat_tree = {}
     for cat in all_cats:
@@ -1278,6 +1296,69 @@ def follow_up_delete(fid):
         db.execute("DELETE FROM follow_ups WHERE id=?", (fid,))
         db.commit()
         flash("跟进记录已删除", "success")
+    db.close()
+    return redirect(url_for('supplier_detail', sid=sid))
+
+
+# ============================================================
+# 报价表文件管理
+# ============================================================
+
+@app.route('/suppliers/<int:sid>/quotation/upload', methods=['POST'])
+def quotation_upload(sid):
+    """上传供应商报价表"""
+    file = request.files.get('file')
+    if not file or not file.filename:
+        flash("请选择文件", "error")
+        return redirect(url_for('supplier_detail', sid=sid))
+
+    display_name = request.form.get('display_name', '').strip()
+    if not display_name:
+        flash("请输入报价表名称", "error")
+        return redirect(url_for('supplier_detail', sid=sid))
+
+    notes = request.form.get('notes', '').strip()
+    ts = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'dat'
+    safe_name = secure_filename(file.filename)
+    filename = f"{ts}_{safe_name}"
+
+    # 保存文件
+    folder = QUOTATION_DIR / str(sid)
+    folder.mkdir(parents=True, exist_ok=True)
+    file.save(str(folder / filename))
+
+    # 写数据库
+    db = get_db()
+    db.execute(
+        "INSERT INTO quotation_files (supplier_id, display_name, filename, original_name, notes) VALUES (?,?,?,?,?)",
+        (sid, display_name, filename, file.filename, notes)
+    )
+    db.commit()
+    db.close()
+    flash("报价表上传成功", "success")
+    return redirect(url_for('supplier_detail', sid=sid))
+
+
+@app.route('/quotations/<int:sid>/<path:filepath>')
+def quotation_serve(sid, filepath):
+    """打开报价表文件"""
+    return send_from_directory(str(QUOTATION_DIR / str(sid)), filepath)
+
+
+@app.route('/quotations/<int:qid>/delete', methods=['POST'])
+def quotation_delete(qid):
+    """删除报价表文件"""
+    db = get_db()
+    qf = db.execute("SELECT * FROM quotation_files WHERE id=?", (qid,)).fetchone()
+    if qf:
+        sid = qf['supplier_id']
+        filepath = QUOTATION_DIR / str(sid) / qf['filename']
+        if filepath.exists():
+            filepath.unlink()
+        db.execute("DELETE FROM quotation_files WHERE id=?", (qid,))
+        db.commit()
+        flash("报价表已删除", "success")
     db.close()
     return redirect(url_for('supplier_detail', sid=sid))
 
