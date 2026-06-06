@@ -146,7 +146,7 @@
                 <td>{{ q.notes or '-' }}</td>
                 <td>{{ q.uploaded_at[:16] }}</td>
                 <td>
-                    <a href="/quotations/{{ q.filename }}" target="_blank" class="btn btn-sm btn-success">📎 打开</a>
+                    <a href="/quotations/{{ q.filename }}" class="btn btn-sm btn-success">📎 打开</a>
                     <form action="/quotations/{{ q.id }}/delete" method="post" style="display:inline;" onsubmit="return confirm('删除这个报价表？');">
                         <button class="btn btn-sm btn-danger">删除</button>
                     </form>
