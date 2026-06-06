@@ -1352,8 +1352,12 @@ def quotation_upload(sid):
 
 @app.route('/quotations/<path:filepath>')
 def quotation_serve(filepath):
-    """打开报价表文件"""
-    return send_from_directory(str(QUOTATION_DIR), filepath)
+    """打开报价表文件（用系统默认程序）"""
+    import os as _os
+    full_path = QUOTATION_DIR / filepath
+    if full_path.exists():
+        _os.startfile(str(full_path))
+    return redirect(request.referrer or url_for('supplier_list'))
 
 
 @app.route('/quotations/<int:qid>/delete', methods=['POST'])
