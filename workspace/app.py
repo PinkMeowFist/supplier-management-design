@@ -339,34 +339,81 @@ def index():
     db = get_db()
     supplier_count = db.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0]
     today = datetime.date.today()
+    today_str = today.isoformat()
     month_start = today.replace(day=1).isoformat()
+
+    # 统计卡片
     new_count = db.execute(
         "SELECT COUNT(*) FROM products WHERE is_new=1 AND new_product_date >= ?",
         (month_start,)
     ).fetchone()[0]
     pending_count = db.execute(
         "SELECT COUNT(*) FROM follow_ups WHERE is_replied=0 AND next_follow_date <= ?",
-        (today.isoformat(),)
+        (today_str,)
     ).fetchone()[0]
 
+    # 逾期未跟进
+    overdue = db.execute('''
+        SELECT fu.*, s.name as supplier_name, p.name as product_name
+        FROM follow_ups fu
+        JOIN suppliers s ON fu.supplier_id = s.id
+        LEFT JOIN products p ON fu.erp_sku = p.erp_sku
+        WHERE fu.is_replied = 0 AND fu.next_follow_date < ?
+        ORDER BY fu.next_follow_date
+        LIMIT 5
+    ''', (today_str,)).fetchall()
+
+    # 本周待跟进（7天内）
+    week_end = (today + datetime.timedelta(days=7)).isoformat()
+    upcoming = db.execute('''
+        SELECT COUNT(*) FROM follow_ups
+        WHERE is_replied = 0 AND next_follow_date >= ? AND next_follow_date <= ?
+    ''', (today_str, week_end)).fetchone()[0]
+
+    # 近7天新品
+    week_ago = (today - datetime.timedelta(days=7)).isoformat()
+    recent_new = db.execute(
+        "SELECT COUNT(*) FROM products WHERE is_new=1 AND new_product_date >= ?",
+        (week_ago,)
+    ).fetchone()[0]
+
+    # 品类分布（按一级分类统计供应商数）
+    cat_dist = db.execute('''
+        SELECT c.level1, COUNT(DISTINCT sc.supplier_id) as cnt
+        FROM supplier_categories sc
+        JOIN categories c ON sc.category_id = c.id
+        GROUP BY c.level1
+        ORDER BY cnt DESC
+        LIMIT 10
+    ''').fetchall()
+    max_cat = max(r['cnt'] for r in cat_dist) if cat_dist else 1
+
     # 最近报价变动
-    recent_prices = db.execute('''
-        SELECT p.erp_sku, p.name, ph.price, ph.price_date,
-               s.short_name, s.name as supplier_name
+    recent_changes = db.execute('''
+        SELECT p.erp_sku, p.name as product_name,
+               s.short_name, s.name as supplier_name,
+               ph.price as latest_price, ph.price_date as latest_date,
+               ph2.price as prev_price
         FROM price_history ph
         JOIN products p ON ph.erp_sku = p.erp_sku
         JOIN suppliers s ON p.supplier_id = s.id
-        WHERE ph.id IN (
-            SELECT MAX(id) FROM price_history GROUP BY erp_sku
-        )
+        LEFT JOIN price_history ph2 ON ph2.erp_sku = ph.erp_sku
+            AND ph2.id = (SELECT MAX(id) FROM price_history WHERE erp_sku=ph.erp_sku AND id < ph.id)
+        WHERE ph.id IN (SELECT MAX(id) FROM price_history GROUP BY erp_sku)
         ORDER BY ph.price_date DESC LIMIT 10
     ''').fetchall()
+
     db.close()
     return render_template('index.html',
                            supplier_count=supplier_count,
                            new_count=new_count,
                            pending_count=pending_count,
-                           recent_prices=recent_prices)
+                           overdue=overdue,
+                           upcoming=upcoming,
+                           recent_new=recent_new,
+                           cat_dist=cat_dist,
+                           max_cat=max_cat,
+                           recent_changes=recent_changes)
 
 
 # ============================================================
